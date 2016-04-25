@@ -24,7 +24,7 @@
  *		-------------
  *  2   |	|	|	|
  *		-------------		- GridBody
- *	3	|	|	|	|
+ *  3	|	|	|	|
  *		-------------
  *  4	|	|	|	|
  *		-------------
@@ -371,9 +371,10 @@
 					y: drawResult.height
 				});
 
-				// Apply if any global translation happens in the body. If in a horizontal stacking if any component
-				// is placed before the GridBody, its more likely that a global transalation will happen. This 
-				// transalation is calculated when all the components left to the GridBody manages their own space.
+				// Apply translation to the component, if any global translation happened in the body. 
+				// If in a horizontal stacking if any component is placed before the GridBody, its more likely that a 
+				// global transalation will happen. This transalation is calculated when all the components left to the 
+				// GridBody manages their own space.
 				axisGroup.attr({
 					'class': 'axis x',
 					'transform': 'translate(' + (0 + (globalTranslate.x || 0)) +',' + 
@@ -384,6 +385,13 @@
 		]);
 	};
 
+	/*
+	 * Draws gridlines on the chart body. X axis draws the vertical grid lines on the body. Post plotting the lines,
+	 * calls hook function by passing all the graphics element.
+	 *
+	 * @param targetGroup {SVGGraphicsElement} - Group element under which the grid lines will be drawn
+	 * @param measurement {Object} - Measurement of the body of the Grid
+	 */
 	XAxisModel.prototype.drawGridLines = function (targetGroup, measurement) {
 		var model = this.model,
 			modelSize = model.length,
