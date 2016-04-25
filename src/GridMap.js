@@ -19,18 +19,18 @@
  * the grid is placed in both the stack. So lets say, this is the stack
  *  Y 
  * Axis
- *     	-------------
- *  1 	|	|	|	|
- *		-------------
- *  2   |	|	|	|
- *		-------------		- GridBody
- *  3	|	|	|	|
- *		-------------
- *  4	|	|	|	|
- *		-------------
- *		  a   b   c 		- X Axis
+ *     	----------
+ *  1 	|  |  |  |
+ *	----------
+ *  2   |  |  |	 |
+ *	----------		- GridBody
+ *  3	|  |  |	 |
+ *	----------
+ *  4	|  |  |	 |
+ *	----------
+ *	  a  b  c 		- X Axis
  *
- *		|||||||||||||| 		- color axis
+ *	|||||||||||||| 		- color axis
  * The same thing is placed using componentStackManager, here is how it is done
  * Horizontal stack
  *  ------------------
