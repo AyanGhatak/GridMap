@@ -266,7 +266,7 @@
 		AxisModel.apply(this, arguments);
 
 		// Stacking order that lets componentStackManager know the poition of the component. By default it is placed
-		// just after the GridBody
+		// just after the GridBody, to bottom
 		this.stackingOrder = 1;
 		this.meta = {};
 	}
@@ -398,6 +398,7 @@
 			conf = this.config,
 			blockSize = measurement.width / modelSize;
 
+		// Creates a seperate group where the gridlines will be attached
 		this.gridLines = targetGroup.append('g').attr({
 			class : 'grid v-grid'
 		}).selectAll('line').data(model).enter().append('g').attr({
@@ -412,6 +413,15 @@
 		return this.gridLines;
 	};
 
+	/*
+	 * Draws labels just below the chart body. This labels are essentially the model of the X axis. What ever is present
+	 * in model will be drawn as label. Once the labels are plotted the postDrawingHook for the same is called.
+	 *
+	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
+	 * @param measurement {Object} - Measurement of the body of the Grid
+	 * @return {Object} - A simple key value pair that gives back the height taken and any offsetTranslation which is 
+	 * suggested
+	 */
 	XAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
 		var model = this.model,
 			config = this.config,
@@ -426,6 +436,7 @@
 			labelGroup,
 			allText;
 
+		// Creates a separate group where the labels will be drawn
 		labelGroup = targetGroup.append('g').attr({
 			'class': 'label'
 		});
@@ -437,6 +448,7 @@
 			y: y + margin + meta.maxLabelHeight / 2
 		}).text(preDrawingHook).style(labelConfig.style);
 
+		// Once all text are plotted in DOM, call the hook callback by passing all the SVGElements
 		postDrawingHook(allText);
 
 		return {
@@ -445,6 +457,14 @@
 		};
 	};
 
+	/*
+	 * Draws name just below the labels. Once the name is plotted the postDrawingHook for the same is called.
+	 *
+	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
+	 * @param measurement {Object} - Measurement of the body of the Grid
+	 * @return {Object} - A simple key value pair that gives back the height taken and any offsetTranslation which is 
+	 * suggested. If not drawn it return 0 as value of the keys.
+	 */
 	XAxisModel.prototype.drawAxisName = function (targetGroup, measurement) {
 		var config = this.config,
 			axisName = this.axisName,
@@ -460,6 +480,7 @@
 			},
 			plotItem;
 
+		// If axis name is present draw it and return the space taken, else return no space taken
 		if (axisName) {
 			plotItem = targetGroup.append('text').attr({
 				x: width / 2,
@@ -476,9 +497,18 @@
 	};
 
 	
+	/*
+	 * Y Axis of the chart.
+	 *
+	 * @param options {Object} - User specified configuration in data
+	 * @param data {Object} - The complete data to display the chart
+	 * @constructor
+	 */
 	function YAxisModel () {
 		AxisModel.apply(this, arguments);
 
+		// Stacking order that lets componentStackManager know the poition of the component. By default it is placed
+		// just before the GridBody, to the left
 		this.stackingOrder = 0;
 		this.meta = {};
 	}
@@ -486,6 +516,13 @@
 	YAxisModel.prototype = Object.create(XAxisModel.prototype);
 	YAxisModel.prototype.constructor = YAxisModel;
 
+	/*
+	 * Calculates the componenets space that will be occupied if drawn.
+	 *
+	 * @param allDimension {Array} - The data model for the axis
+	 * @param measurement {Object} - The measurement of GridBody
+	 * @param componentStackManager {Object} - Stack Manager to completes the layout
+	 */
 	YAxisModel.prototype.allocateComponentSpace = function (allDimension, measurement, componentStackManager) {
 		var max = Number.NEGATIVE_INFINITY,
 			config = this.config,
@@ -498,29 +535,44 @@
 		 	thisDimension,
 		 	axisNameMetrics;
 
-		 meta.modelSyncDimension = allDimension;
+		meta.modelSyncDimension = allDimension;
 
-		 for (index = 0, length = allDimension.length; index < length; index++) {
+		// Find the max height of the texts to be plotted 
+		for (index = 0, length = allDimension.length; index < length; index++) {
 		 	thisDimension = allDimension[index];
 
 		 	if (max < thisDimension.width) {
 		 		max = thisDimension.width;
 		 	}
-		 }
+		}
 
-		 meta.maxLabelWidth = ceil(max);
-		 totalWidth += (ceil(max) + (config.label.margin || 0));
+		meta.maxLabelWidth = ceil(max);
+		// Takes care of the space if margin is suggested by user. Margin is the space between the prev component and 
+		// the current component. If not given 0 by default.
+		totalWidth += (ceil(max) + (config.label.margin || 0));
 
-		 if (this.axisName) {
+		if (this.axisName) {
+			// If axis name is given, allocates space for axis name as well.
 		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
 		 	totalWidth += axisNameMetrics.width + (config.name.margin || 0);
-		 }
+		}
 
-		 measurement.width -= meta.width = totalWidth;
+		// Reduces the chart body width, so that this axis component can be drawn.
+		measurement.width -= meta.width = totalWidth;
 
-		 componentStackManager.placeInStack(stackingKeys.HORIZONTAL, this.stackingOrder)(this, { width: totalWidth });
+		// Let the componentStackManager know about the orientation, position and how much width it is going to take if
+		// plotted. 
+		componentStackManager.placeInStack(stackingKeys.HORIZONTAL, this.stackingOrder)(this, { width: totalWidth });
 	};
 
+	/*
+	 * Draws the Y Axis. This should draw all the sub component of y axis. Like name, gridlines, labels.
+	 * These drawing functions uses angular like dependency invocation. Since various components might need different
+	 * chart metrics to calculate the space, it is upto the component to inject the dependency in itself.
+	 * See DEPENDENCY INVOCATION / INJECTION at top for list of all dependencies.
+	 *
+	 * @param controller {Function} - Helps to inject the required dependencies which are asked
+	 */
 	YAxisModel.prototype.draw = function (controller) {
 		controller([
 			'graphics', 
@@ -536,27 +588,34 @@
 					drawResult,
 					axisGroup;
 
+				// Get the item from the stackManager. stackManager determines the position from the stacking order.
 				stackedItem = componentStackManager.getStackItemByInstance(stackingKeys.HORIZONTAL, this);
 
+				// Draws the grid lines inside the grid body
 				this.drawGridLines(chartBody, {
 					width: effBodyWidth,
 					height: effBodyHeight
 				});
 
+				// Creates a group where the name and labels will be attached
 				axisGroup = gridMain.append('g');
 
+				// Draws the labels and gets the space taken by the labels
 				drawResult = this.drawAxisName(axisGroup, {
 					width: effBodyWidth,
 					height: effBodyHeight,
 					x: 0
 				});
 
+				// Draws the name right after the labels are drawn
 				drawResult = this.drawAxisLabels(axisGroup, {
 					width: effBodyWidth,
 					height: effBodyHeight,
 					x: drawResult.width
 				});
 
+				// Apply translation additional to the component, which is just the component position move in 
+				// horizontal, in this case, since its the first component it would be 0
 				axisGroup.attr({
 					'class': 'axis y',
 					'transform': 'translate(' + stackedItem.pos +',' + 0 + ')'
@@ -566,12 +625,20 @@
 		]);
 	};
 
+	/*
+	 * Draws gridlines on the chart body. Y axis draws the horizontal grid lines on the body. Post plotting the lines,
+	 * calls hook function by passing all the graphics element.
+	 *
+	 * @param targetGroup {SVGGraphicsElement} - Group element under which the grid lines will be drawn
+	 * @param measurement {Object} - Measurement of the body of the Grid
+	 */
 	YAxisModel.prototype.drawGridLines = function (targetGroup, measurement) {
 		var model = this.model,
 			modelSize = model.length,
 			conf = this.config,
 			blockSize = measurement.height / modelSize;
 
+		// Creates a seperate group where the gridlines will be attached
 		this.gridLines = targetGroup.append('g').attr({
 			class : 'grid h-grid'
 		}).selectAll('line').data(model).enter().append('g').attr({
@@ -586,6 +653,15 @@
 		return this.gridLines;
 	};
 
+	/*
+	 * Draws labels just left to the chart body. This labels are essentially the model of the Y axis. What ever is  
+	 * present in model will be drawn as label. Once the labels are plotted the postDrawingHook for the same is called.
+	 *
+	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
+	 * @param measurement {Object} - Measurement of the body of the Grid
+	 * @return {Object} - A simple key value pair that gives back the width taken and any offsetTranslation which is 
+	 * suggested
+	 */
 	YAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
 		var model = this.model,
 			config = this.config,
@@ -601,6 +677,7 @@
 			labelGroup,
 			allText;
 
+		// Creates a separate group where the labels will be drawn
 		labelGroup = targetGroup.append('g').attr({
 			'class': 'label'
 		});
@@ -612,6 +689,7 @@
 			y : function (d, i) { return (i *  blockSize) + (blockSize / 2) + modelSyncDimension[i].height / 2; }
 		}).text(preDrawingHook).style(labelConfig.style);
 
+		// Once all text are plotted in DOM, call the hook callback by passing all the SVGElements
 		postDrawingHook(allText);
 
 		return {
@@ -620,6 +698,14 @@
 		};
 	};
 
+	/*
+	 * Draws name just left to the labels. Once the name is plotted the postDrawingHook for the same is called.
+	 *
+	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
+	 * @param measurement {Object} - Measurement of the body of the Grid
+	 * @return {Object} - A simple key value pair that gives back the width taken and any offsetTranslation which is 
+	 * suggested. If not drawn it return 0 as value of the keys.
+	 */
 	YAxisModel.prototype.drawAxisName = function (targetGroup, measurement) {
 		var config = this.config,
 			axisName = this.axisName,
@@ -636,6 +722,7 @@
 			textWidth,
 			plotItem;
 
+		// If axis name is present draw it and return the space taken, else return no space taken
 		if (axisName) {
 			textWidth = meta.axisNameMetrics.width;
 			
