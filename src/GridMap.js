@@ -740,12 +740,44 @@
 		return res;
 	};
 
-	
+	/*
+	 * Manages the init of a ColorAxis class from the configiuration. This contains the definition of the ColorAxis 
+	 * classes and initialize the class based on the configuration. Currently the supported conf are
+	 * code : {
+	 *	key: 'name',
+	 *	colors: ['#FFA726', '#9E9E9E', '#607D8B'],
+	 *	type: 'series'
+	 * } 
+	 * This instantiates the SeriesColorAxis class. If this color configuration is used the datasets are colored form
+	 * the colors key.
+	 *
+	 * code : {
+	 * 	key: 'data.colorValue',
+	 * 	values: [0, 100],
+	 *	colors: ['#FF6789', '#2196F3'],
+	 *	type: 'gradient'
+	 * }
+	 * This instantiates the GradientColorAxis class. If this color configuration is used the data needs to have a 
+	 * colorValue key which will take the color from the gradient scale.
+	 *
+	 * @todo Provision to add custom axis
+	 * @todo Add interaction once the axis is clicked
+	 */
 	colorAxisManager = (function () {
 		var axisInstance;
 
+		/*
+		 * Abstract implementation of the color axis. This class cannot be used in a standalone manner. Derived class
+		 * needs to give implementation of few methods to be able to completely draw the axis.
+		 * This takes care of all the main color axis related operations. Color axis is only the rect with fill colors. 
+		 * Derived class needs to take care of the text drawing.
+		 *
+		 * @param colorAxisData {Object} - Color configuration from user input
+		 * @constructor 
+		 */
 		function ColorAxisBase (colorAxisData) {
 			this.colorAxisData = colorAxisData;
+			// This is stacked verticallty at the bottom after the grid body and x axis
 			this.stackingOrder = 2;
 			this.meta = {};
 			this.colorRetrieverFn = EMPTY_FN;
@@ -756,11 +788,27 @@
 				group: undefined
 			};
 
+			// This is key is for the modules which needs ColorAxi to color their component. Lets say the dataset needs
+			// to color the rectangle based on a value. The color will be calculated based on this value from a linear
+			// scale of colors. If the gradient color range is [0, 100] => ['red', 'green']. then for value 50 the color
+			// would be somewhat between red and green. This retrieval of the value is denoted by key.
 			this.key = colorAxisData.code.key;
 		}
 
 		ColorAxisBase.prototype.constructor = ColorAxisBase;
 
+		/*
+		 * Does space calculation prior to drawing.
+		 * Each component should be able to calculate space before it is drawn. These functions and drawing functions 
+		 * uses angular like dependency invocation. Since various components might need different chart metrics to 
+		 * calculate the space, it is upto the component to inject the dependency in itself.
+		 * See DEPENDENCY INVOCATION / INJECTION at top for list of all dependencies.
+		 *	
+		 * This only takes care of the axis space only. It calls getAdditionalSpace of the derived class to get the
+		 * further space for placing the labels.
+		 *
+		 * @param controller {Function} - Helps to inject the required dependencies which are asked
+		 */
 		ColorAxisBase.prototype.updatePreDrawingSpace = function (controller) {
 			controller([
 				'effectiveBodyMeasurement',
@@ -772,11 +820,16 @@
 						stackingKeys = componentStackManager.keys,
 						additionalSpaceTaken;
 
-					additionalSpaceTaken = this.getAdditionalSpace();					
+					// Asks the for additional space excluding the axis. Text plotted, margin space comes under this
+					additionalSpaceTaken = this.getAdditionalSpace();
+					// Total height taken is the additional space and the height taken to draw the axis rect.					
 					totalHeightTaken = colorAxisData.height + additionalSpaceTaken;
 
+					// Reduces the body height by this amount so that color axis can be drawn
 					measurement.height -= totalHeightTaken + margin;
 
+					// Let the componentStackManager know about the orientation, position and how much width it is going
+					// to take if plotted. 
 					componentStackManager.placeInStack(stackingKeys.VERTICAL, this.stackingOrder)(this, { 
 						height: totalHeightTaken
 					});
@@ -785,23 +838,61 @@
 			]);
 		};
 		
+		/*
+		 * This is the most important (probabily the only useful) function for the component which uses colorAxis. This 
+		 * maps a value to a color. 
+		 * Each derived class has its own way to map a continuous or discrete domain to a discrete color range. This 
+		 * function in turn calls the mapping function of the derived class.
+		 *
+		 * @param: domainValue {Number | Enum} - The value which would be mapped to a color.
+		 *
+		 * @return {Hex} - The hex color code related to the value.
+		 */
 		ColorAxisBase.prototype.getColorByDomain = function (domainValue) {
 			return this.colorRetrieverFn(domainValue);
 		};
 
+		/*
+		 * Clipping is used on the axis rectangle to divide it in sections. By default no sections are made on the axis.
+		 * Derived class might return the String format of the clip rect if sections are required.
+		 *
+		 * @return {String | undefined | null} - If sections on axis is required return string format of clip path url 
+		 *										otherwise null or undefined
+		 */
 		ColorAxisBase.prototype.getClippedRect = function () {
+			// By default no sections are made on the axis
 			return null;
 		};
 
+		/*
+		 * This function is called when the axis needs to be colored. Whatever this function returns is set as the value
+		 * of fill attribute of the axis.
+		 * 
+		 * @param svgDefsManager {miniSvgDefsManager} - API to create gradient, clip-path etc.
+		 * @param stops {Array} -  Array of svg stop element in a key value pair.
+		 *						{ offset: change ratio in percentage, 'stop-color': hex color code, 'stop-opacity': 1 }
+		 *
+		 * @return {String} - String format of gradient url
+		 */
 		ColorAxisBase.prototype.getAxisColorByStop = function (svgDefsManager, stops) {
 			return svgDefsManager.createLinearGradient('color-axis-grad', true, stops);
 		};
 
+		/*
+		 * Draws the color axis itself. This only draw the axis rect and calls postAxisPlotDrawing of derived class for
+		 * additional drawing viz marker, labels. This drawing function like axes functions uses angular like dependency 
+		 * invocation. Since various components might need different chart metrics to calculate the space, it is upto 
+		 * the component to inject the dependency in itself.
+		 * See DEPENDENCY INVOCATION / INJECTION at top for list of all dependencies.
+		 *
+		 * @param controller {Function} - Helps to inject the required dependencies which are asked
+		 */
 		ColorAxisBase.prototype.draw = function (controller) {
 			var colorAxisData = this.colorAxisData,
 				defManager = utils.miniSvgDefsManager,
 				margin = colorAxisData.margin || 0;
 
+			// Asks the controller for the dependency
 			controller([
 				'graphics', 
 				'effectiveBodyMeasurement',
@@ -817,12 +908,17 @@
 						measurement,
 						axisGroup;
 
+					// Initializes the svg definitation manager with chart instance
 					defManager.init(graphics.chart);
 
+					// Get the item from the stackManager. stackManager determines the position from the stacking order.
 					stackedItem = componentStackManager.getStackItemByInstance(stackingKeys.VERTICAL, this);
 
+					// Creates a separete axis group for color axis
 					axisGroup = this.graphics.group = gridMain.append('g');
 
+					// Determines the measurement  of the color axis.
+					// Width is derived from widthF attribute and width of body
 					width = effBodyWidth * colorAxisData.widthF;
 					height = colorAxisData.height;
 					measurement = {
@@ -832,9 +928,15 @@
 						y: margin
 					};
 
+					// Draws the main rectangular area of the color axis
 					this.drawAxis(measurement, axisGroup, defManager);
+					// Calls for specifics drawibg like marker label etc
 					this.postAxisPlotDrawing(measurement, this.stopsConfObj);
 
+					// Apply translation to the component, if any global translation happened in the body. 
+					// If in a horizontal stacking if any component is placed before the GridBody, its more likely that
+					// a global transalation will happen. This transalation is calculated when all the components left
+					// to the GridBody manages their own space.
 					axisGroup.attr({
 						'class': 'axis color',
 						'transform': 'translate(' + (0 + (globalTranslate.x || 0)) +',' + 
@@ -845,17 +947,27 @@
 			]);
 		};
 
+		/*
+		 * Draws the main rect of the color axis only.
+		 *
+		 * @param measurement {Object} - A simple key value pair of measurement of the axis
+		 * @param group {SVGGraphicsElement} - Group under which the color axis belongs
+		 * @param svgDefsManager {miniSvgDefsManager} - API to create svg defs
+		 *
+		 * @return {SVGGraphicsElement} - The created svg rect
+		 */
 		ColorAxisBase.prototype.drawAxis = function (measurement, group, svgDefsManager) {
 			var stopsConfObj,
 				stops,
 				breakRatios,
 				axisRect;
 
+			// Gets the stop configuration to draw gradient on axis
 			stopsConfObj = this.stopsConfObj = this.getStopsConfiguration();
 			stops = stopsConfObj.stopsConf;
 			breakRatios = stopsConfObj.breakRatios;
 
-			// Draw axis
+			// Plots rectangle on DOM. Apply clip-path and gradient fill in attributes
 			axisRect = this.graphics.node = group.append('rect').attr(measurement).attr({
 				'clip-path': this.getClippedRect(svgDefsManager, {
 					refRect: measurement,
@@ -868,43 +980,82 @@
 			return axisRect;
 		};
 
-
+		/*
+		 * More specific implementation of the color axis. This type of color axis are preferred when two datasets are
+		 * plotted simultaneously and comparing across the datasets is the main goal. Typical data structure
+		 * code : {
+		 * 	key: 'name',
+		 * 	colors: ['#FFA726', '#9E9E9E', '#607D8B'],
+		 * 	type: 'series'
+		 * }
+		 * The code.key maps to the name key of the data obj. Hence every dataset should have unique name.
+		 * The code.colors are the array of colors to be on serieses sequantially
+		 * The code.type is what determines it to be a SeriesColorAxis
+		 *
+		 * @param colorAxisData {Object} - Color configuration from user input
+		 * @param data {Object} - The complete chat data
+		 */
 		function SeriesColorAxis (colorAxisData, data) {
 			ColorAxisBase.call(this, colorAxisData);
 
+			// Registers the color retiever function which does the mapping between value and color
 			this.colorRetrieverFn = this.getColorBySeriesName;
+			// Stores the labels to be plotted beneath the axis rect
 			this.labelModel = [];
-			this.domainRangeMap = [];
-
+			
+			// Prepares the label model from the data
 			this.extractLabelModel(data);
 		}
 
 		SeriesColorAxis.prototype = Object.create(ColorAxisBase.prototype);
 		SeriesColorAxis.prototype.constructor = SeriesColorAxis;
 
+		/*
+		 * Extracts the label model for the labels to be plotted betneath the axis.
+		 *
+		 * @param data {Object} - The complete chat data
+		 */
 		SeriesColorAxis.prototype.extractLabelModel = function (data) {
 			var dataset = data.dataset,
 				labelModel = this.labelModel,
 				index = 0,
 				length = dataset.length;
 
+			// Iterates through the datasets to get the name. Once received store it in the model array. The name of the
+			// datasets is the model in this cases
+			// @todo takes from the keys
 			for (; index < length; index++) {
 				labelModel.push(dataset[index].name);
 			}
 		};
 
+		/*
+		 * Color retiever function which does the mapping between value and color
+		 *
+		 * @param name {String} - name of the dataset
+		 *
+		 * @return {Hex} - Color code in hex corrosponding to the name
+		 */
 		SeriesColorAxis.prototype.getColorBySeriesName = function (name) {
 			var labelModel = this.labelModel,
 				colors = this.colorAxisData.code.colors,
 				index;
 
 			if ((index = labelModel.indexOf(name)) !== -1) {
+				// Get the index of the key from the model. Since the order of the dataset and color array is in the
+				// same order, same index is used to return the color
 				return colors[index] || DEF_COLOR;
 			}
 
 			return DEF_COLOR;
 		};
 
+		/*
+		 * Gets if any additional space is taken for any specific drawing. This is extra space excluding the axis rect.
+		 * Like for text, margin between text and rect etc.
+		 *
+		 * @return {Number} - Space taken. If no extra components are drawn.
+		 */
 		SeriesColorAxis.prototype.getAdditionalSpace = function () {
 			var colorAxisData = this.colorAxisData,
 				labelModel = this.labelModel,
@@ -923,16 +1074,33 @@
 				name = labelModel[index];
 
 				textMetrics = getTextMetrics(name, labelConf.style);
+				// Gets the maximum height of the labels
 				if (max < textMetrics.height) {
 					max = textMetrics.height;
 				}
 			}
 
+			// Space taken is addition of margin and max label height
 			totalSpaceTaken = max + margin;
 			meta.labelSpaceTaken = totalSpaceTaken;
 			return totalSpaceTaken;
 		};
 
+		/*
+		 * This is used the color the legend axis. It reads the color input and creates svg gradient stops. The 
+		 * calculation of the stops happen here. If the axis is of two discrete solid colors that too is acheived by two
+		 * gradient colors which have sharp transition. Ex.
+		 * 0%   - FF0000
+		 * 50%  - FF0000
+		 * 50%  - 00FF00
+		 * 100% - 00FF00
+		 * This would create twosolid colors red and green.
+		 *
+		 * @return {Object} - Stops configuration {
+		 * 	stopsConf: [{ offset: change ratio in percentage, 'stop-color': hex color code, 'stop-opacity': 1 }],
+		 * 	breakRatios: Ratios where the color has just began to change
+		 * }
+		 */
 		SeriesColorAxis.prototype.getStopsConfiguration = function () {
 			var labelModel = this.labelModel,
 				colors = this.colorAxisData.code.colors,
@@ -951,16 +1119,22 @@
 				length,
 				itr;
 
+			// Iterates the model to generate the stops. Does not account the 0% and 100% as svg acutomatically 
+			// takes care of this
 			for (index = 1, length = labelModel.length; index < length; index++) {
 				colorIndex = index - 1;
+				// Iterates two times for each labelModel, this is because if there is a change at 50%, the svg expect 
+				// it like - 50%  - FF0000,  50%  - 00FF00
 				itr = 1;
 				ratio = floor(index / length * 100);
 				breakRatios.push(ratio);
 
 				do {
+					// Geberates a new stop for every iteration
 					stop = merge(stopStub, {});
 					stop.offset = ratio + PERCENT_STR;
-					stop['stop-color'] = colors[colorIndex]; 
+					stop['stop-color'] = colors[colorIndex];
+
 					stops.push(stop);
 				} while (colorIndex++, itr--);
 			}
@@ -971,14 +1145,36 @@
 			};
 		};
 
+		/*
+		 * This creates a clip-path in case the axis needs to be divided in sections.
+		 * @param svgDefsManager {miniSvgDefsManager} - API to create gradient, clip-path etc.
+		 * @param options {Object} - Configuration options required for drawing clip path. This typically contains
+		 *							{
+		 *								ratios: Ratios of break
+		 *								refRect: The reference on which clipping will be applied
+		 *							}
+		 *
+		 * @return {String} clip-path url
+		 */
 		SeriesColorAxis.prototype.getClippedRect = function (svgDefsManager, options) {
 			var colorAxisData = this.colorAxisData,
 				axisBreak = colorAxisData.axis.axisBreak;
 
+			// Adds the conf which determines how much space to be given before starting the subsequent section.
 			options.tolerance = axisBreak;
 			return svgDefsManager.createClipRect('color-axis-clip', true, options);
 		};
 
+		/*
+		 * @todo instead of sending parameters, it should get the parameters by controller from the parent class.
+		 *
+		 * This function takes care of drawing the additional components, if any. The space adjustment of all these 
+		 * should be done in getAdditionalSpace function 
+		 *
+		 * @param: measurement {Object} - The measurement of the legend axis. Since everything else will be aligned 
+		 *									against this.
+		 * @param: stopsConfObj {Object} - The output of getStopsConfiguration
+		 */
 		SeriesColorAxis.prototype.postAxisPlotDrawing = function (measurement, stopsConfObj) {
 			var colorAxisData = this.colorAxisData,
 				labelModel = this.labelModel,
@@ -1000,11 +1196,14 @@
 				x,
 				blockLength;
 
-			// Draw markers
+			// Draw markers. Markers are vertical dotted line that separates two section by an additional visual aid.
 			for (index = 0, length = breakRatios.length; index < length; index++) {
+				// These are placed at every breaks (section) along the axis.
 				ratio = breakRatios[index];
 				x = measurement.x + measurement.width * ratio / 100 + axisBreak / 2;
 				
+				// These are laid out vertically. Markers starts from the beginning of the axis top and vertically 
+				// grows till the point labels are drawn
 				group.append('line').attr({
 					x1: x,
 					y1: measurement.y,
@@ -1013,23 +1212,28 @@
 				}).style(colorAxisData.marker.style);
 			}
 
-			// Draw text
+			// Since n ratio in breakRatios break the axis in (n + 1) sections, it is required to to add the last or 
+			// first ratio in the array (since it is not included). Hence for n section we would get n element array.
 			breakRatios.push(100);
+			// Draw texts along the axis. Here the labels are placed in the middle of each sections.
 			for (index = 0, length = breakRatios.length; index < length; index++) {
 				ratio = breakRatios[index];
 				blockLength = measurement.width * (ratio - (breakRatios[index - 1] || 0)) / 100;
 				x = measurement.x + measurement.width * ratio / 100;
 				
 				label = labelModel[index];
+				// Calls the preDrawingHook of the user, before plotting
 				label = preDrawingHook(label);
 				textMetrics = getTextMetrics(label, labelConf.style);
 
+				// Postion it in the middle of the section
 				elemArr[index] = group.append('text').attr({
 					x: x - blockLength / 2,
 					y: measurement.y + measurement.height + textMetrics.height / 2 + margin
 				}).text(label).style(labelConf.style);
 			}			
 
+			// Calls the preDrawingHook of the user once plotted
 			postDrawingHook(elemArr);
 		};
 
