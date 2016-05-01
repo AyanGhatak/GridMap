@@ -906,7 +906,9 @@
 						height,
 						width,
 						measurement,
-						axisGroup;
+						axisGroup,
+						postPlotRes,
+						offsetTranslation;
 
 					// Initializes the svg definitation manager with chart instance
 					defManager.init(graphics.chart);
@@ -931,7 +933,10 @@
 					// Draws the main rectangular area of the color axis
 					this.drawAxis(measurement, axisGroup, defManager);
 					// Calls for specifics drawibg like marker label etc
-					this.postAxisPlotDrawing(measurement, this.stopsConfObj);
+					postPlotRes = this.postAxisPlotDrawing(measurement, this.stopsConfObj);
+
+					// If any translation is suggested by the postAxisPlotDrawing, apply that
+					offsetTranslation = (postPlotRes || {}).offsetTranslation || 0;
 
 					// Apply translation to the component, if any global translation happened in the body.
 					// If in a horizontal stacking if any component is placed before the GridBody, its more likely that
@@ -939,7 +944,7 @@
 					// to the GridBody manages their own space.
 					axisGroup.attr({
 						'class': 'axis color',
-						'transform': 'translate(' + (0 + (globalTranslate.x || 0)) +',' +
+						'transform': 'translate(' + (offsetTranslation + (globalTranslate.x || 0)) +',' +
 							(stackedItem.pos + (globalTranslate.y || 0)) + ')'
 					});
 
@@ -1228,13 +1233,17 @@
 
 				// Postion it in the middle of the section
 				elemArr[index] = group.append('text').attr({
-					x: x - blockLength / 2,
+					x: x - blockLength / 2 + axisBreak / 2,
 					y: measurement.y + measurement.height + textMetrics.height / 2 + margin
 				}).text(label).style(labelConf.style);
 			}
 
 			// Calls the preDrawingHook of the user once plotted
 			postDrawingHook(elemArr);
+
+			return {
+				offsetTranslation: - axisBreak / 2
+			};
 		};
 
 		/*
