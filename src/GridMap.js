@@ -7,17 +7,17 @@
  * GridMap is HeatMap by default, but you can do many more weird stuff with it.
  *
  *
- * There are few concepts / strategies involved in the code. Understanding these would make the code and architecture 
+ * There are few concepts / strategies involved in the code. Understanding these would make the code and architecture
  * easier to extend and use.
- * 
- * In GridMap everything is a component. And any component can be placed anywhere. We currently have the following 
+ *
+ * In GridMap everything is a component. And any component can be placed anywhere. We currently have the following
  * components. XAxis, YAxis, GridBody and ColorAxis
  *
  * STACK MANAGER:
- * Using componentStackManager, the components are able to easily place themself whereever they want. The stackManager 
- * maintains 2 stacks. One is horizontal another one is vertical. Since the components are place around grid itself, 
+ * Using componentStackManager, the components are able to easily place themself whereever they want. The stackManager
+ * maintains 2 stacks. One is horizontal another one is vertical. Since the components are place around grid itself,
  * the grid is placed in both the stack. So lets say, this is the stack
- *  Y 
+ *  Y
  * Axis
  *     	----------
  *  1 	|  |  |  |
@@ -34,7 +34,7 @@
  * The same thing is placed using componentStackManager, here is how it is done
  * Horizontal stack
  *  ------------------
- * | Y Axis | GridBody| 
+ * | Y Axis | GridBody|
  *  ------------------
  * Vertical Stack
  *  -----------
@@ -46,7 +46,7 @@
  *  -----------
  *
  * AXIS MODEL AND HOOKS:
- * The heart of the axes are the models. This model is calculated by creating an array of unique numbers retrieved 
+ * The heart of the axes are the models. This model is calculated by creating an array of unique numbers retrieved
  * by the key from the user given data. Lets say the data be like
  * data = [{
  * 		org: 'M&S',
@@ -60,20 +60,20 @@
  * }]
  * And the key for one axis be key = 'cost'
  * So when key is operated on the data this function creates a model of [2100, 2500]
- * The advantage of this is it does not assume the data in a particular format. Instead it asks the user how to 
+ * The advantage of this is it does not assume the data in a particular format. Instead it asks the user how to
  * operate on the data to retrieve the model.
- * Once the model is calculated, user has the provision to update the model by hooks. Lets say the user might want to  
- * sort the Y Axis (which is not in HeatMap grammar thats why GridMap :-D). Hooks are functions that gets called when 
+ * Once the model is calculated, user has the provision to update the model by hooks. Lets say the user might want to
+ * sort the Y Axis (which is not in HeatMap grammar thats why GridMap :-D). Hooks are functions that gets called when
  * a particular operation is performed.
  *
  * PREDRAWING AND POSTDRAWING HOOKS:
- * Hooks are callback function given in the data itself. It gets invoked in a particluar time when an particulat event 
- * happens. Lets say when axis data is ready PREDRAWING hook is called by sending model values one by one. Once the 
+ * Hooks are callback function given in the data itself. It gets invoked in a particluar time when an particulat event
+ * happens. Lets say when axis data is ready PREDRAWING hook is called by sending model values one by one. Once the
  * graphics object related to the model are plotted the POSTDRAWING hook is called passing all the elements.
  *
  * DEPENDENCY INVOCATION / INJECTION:
- * The components' drawing and space calculation functions work by taking a angular like controller function. This 
- * function if called with a dependencies list and a function at the end, the last function is called with those 
+ * The components' drawing and space calculation functions work by taking a angular like controller function. This
+ * function if called with a dependencies list and a function at the end, the last function is called with those
  * dependencies. Currently the list of available dependencies which can be invoked
  * {
  *		componentStackManager: manages the layout and placement of components,
@@ -81,7 +81,7 @@
  *			x: X Axis instance,
  *			y: Y Axis instance
  * 		}
- *		effectiveChartMeasurement: Measurement of the whole chart including all the components, 
+ *		effectiveChartMeasurement: Measurement of the whole chart including all the components,
  *		effectiveBodyMeasurement: Measurement of the grid body only excluding all the components
  *		graphics: {
  *			chart: d3 plot instance of the svg,
@@ -116,12 +116,12 @@
 
 
 	/*
-	 * The abstract base class to create axes. This can't be used as a standalone class. All the default and custom 
+	 * The abstract base class to create axes. This can't be used as a standalone class. All the default and custom
 	 * class should have this class in class hierarchy.
 	 *
 	 * This class solely takes the responsibility to get the data model ready for the axes. Data model is something that
-	 * is the only thing required to draw the axes. 
-	 * 
+	 * is the only thing required to draw the axes.
+	 *
 	 * Child class inheriting this class should give definitation of the following methods
 	 * undefined allocateComponentSpace(model, measurement, componentStackManager)
 	 *
@@ -134,35 +134,35 @@
 			merge = utils.merge;
 
 		this.config = {};
-		
+
 		// Uses two steps merge to get the default data overridden by user data.
-		
+
 		// First, copies the user data in empty object
 		merge(options, this.config);
 		// Second, copies the data from default stub. Here in this case, if the data property is already present, it is
 		// kept unchanged (hence we achieve override of the default data by user data)
 		merge(defaultAxisData, this.config);
 
-		// Holds the grid line graphics components. GridLines are horizontal (for Y Axis) and vertical (for X axis) 
+		// Holds the grid line graphics components. GridLines are horizontal (for Y Axis) and vertical (for X axis)
 		// lines that composes the whole grid.
 		this.gridLines = [];
 		// The key, value of which would be pushed in axis model
 		this.dataKey = undefined;
 		// Axis name gives context on the axis itself by mentationing what the axis means
 		this.axisName = this.config.name.text;
-		
+
 		// Prepares the model from the data
-		this.model = this.getNormalizedModel(data);	
+		this.model = this.getNormalizedModel(data);
 	}
 
 	AxisModel.prototype.constructor = AxisModel;
 
 	/*
-	 * This takes the raw user given data as input and produce the model from the data. 
+	 * This takes the raw user given data as input and produce the model from the data.
 	 * See AXIS MODEL AND HOOKS at top.
 	 *
 	 * @param data {object} - data entered by the user
-	 * 
+	 *
 	 * @return {Array} - Array of unique values that consists the model
 	 */
 	AxisModel.prototype.getNormalizedModel = function (data) {
@@ -222,7 +222,7 @@
 
 	/*
 	 * Does space calculation prior to drawing.
-	 * Each component should be able to calculate space before it is drawn. These functions and drawing functions 
+	 * Each component should be able to calculate space before it is drawn. These functions and drawing functions
 	 * uses angular like dependency invocation. Since various components might need different chart metrics to calculate
 	 * the space, it is upto the component to inject the dependency in itself.
 	 * See DEPENDENCY INVOCATION / INJECTION at top for list of all dependencies.
@@ -245,7 +245,7 @@
 					allDimension = [];
 
 				for (; index < length; index++) {
-					// Gets all the model texts which will be plotted. 
+					// Gets all the model texts which will be plotted.
 					allDimension.push(getTextMetrics(model[index], labelStyle));
 				}
 
@@ -293,7 +293,7 @@
 		 	thisDimension,
 		 	axisNameMetrics;
 
-		// Find the max height of the texts to be plotted 
+		// Find the max height of the texts to be plotted
 		for (index = 0, length = allDimension.length; index < length; index++) {
 		 	thisDimension = allDimension[index];
 
@@ -303,7 +303,7 @@
 		}
 
 		meta.maxLabelHeight = ceil(max);
-		// Takes care of the space if margin is suggested by user. Margin is the space between the prev component and 
+		// Takes care of the space if margin is suggested by user. Margin is the space between the prev component and
 		// the current component. If not given 0 by default.
 		totalHeight += (ceil(max) + (config.label.margin || 0));
 
@@ -317,7 +317,7 @@
 		measurement.height -= meta.height = totalHeight;
 
 		// Let the componentStackManager know about the orientation, position and how much height it is going to take if
-		// plotted. 
+		// plotted.
 		componentStackManager.placeInStack(stackingKeys.VERTICAL, this.stackingOrder)(this, { height: totalHeight });
 	};
 
@@ -331,7 +331,7 @@
 	 */
 	XAxisModel.prototype.draw = function (controller) {
 		controller([
-			'graphics', 
+			'graphics',
 			'effectiveBodyMeasurement',
 			'componentStackManager',
 			'globalTranslate',
@@ -371,13 +371,13 @@
 					y: drawResult.height
 				});
 
-				// Apply translation to the component, if any global translation happened in the body. 
-				// If in a horizontal stacking if any component is placed before the GridBody, its more likely that a 
-				// global transalation will happen. This transalation is calculated when all the components left to the 
+				// Apply translation to the component, if any global translation happened in the body.
+				// If in a horizontal stacking if any component is placed before the GridBody, its more likely that a
+				// global transalation will happen. This transalation is calculated when all the components left to the
 				// GridBody manages their own space.
 				axisGroup.attr({
 					'class': 'axis x',
-					'transform': 'translate(' + (0 + (globalTranslate.x || 0)) +',' + 
+					'transform': 'translate(' + (0 + (globalTranslate.x || 0)) +',' +
 						(stackedItem.pos + (globalTranslate.y || 0)) + ')'
 				});
 
@@ -419,7 +419,7 @@
 	 *
 	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
 	 * @param measurement {Object} - Measurement of the body of the Grid
-	 * @return {Object} - A simple key value pair that gives back the height taken and any offsetTranslation which is 
+	 * @return {Object} - A simple key value pair that gives back the height taken and any offsetTranslation which is
 	 * suggested
 	 */
 	XAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
@@ -462,7 +462,7 @@
 	 *
 	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
 	 * @param measurement {Object} - Measurement of the body of the Grid
-	 * @return {Object} - A simple key value pair that gives back the height taken and any offsetTranslation which is 
+	 * @return {Object} - A simple key value pair that gives back the height taken and any offsetTranslation which is
 	 * suggested. If not drawn it return 0 as value of the keys.
 	 */
 	XAxisModel.prototype.drawAxisName = function (targetGroup, measurement) {
@@ -496,7 +496,7 @@
 		return res;
 	};
 
-	
+
 	/*
 	 * Y Axis of the chart.
 	 *
@@ -537,7 +537,7 @@
 
 		meta.modelSyncDimension = allDimension;
 
-		// Find the max height of the texts to be plotted 
+		// Find the max height of the texts to be plotted
 		for (index = 0, length = allDimension.length; index < length; index++) {
 		 	thisDimension = allDimension[index];
 
@@ -547,7 +547,7 @@
 		}
 
 		meta.maxLabelWidth = ceil(max);
-		// Takes care of the space if margin is suggested by user. Margin is the space between the prev component and 
+		// Takes care of the space if margin is suggested by user. Margin is the space between the prev component and
 		// the current component. If not given 0 by default.
 		totalWidth += (ceil(max) + (config.label.margin || 0));
 
@@ -561,7 +561,7 @@
 		measurement.width -= meta.width = totalWidth;
 
 		// Let the componentStackManager know about the orientation, position and how much width it is going to take if
-		// plotted. 
+		// plotted.
 		componentStackManager.placeInStack(stackingKeys.HORIZONTAL, this.stackingOrder)(this, { width: totalWidth });
 	};
 
@@ -575,7 +575,7 @@
 	 */
 	YAxisModel.prototype.draw = function (controller) {
 		controller([
-			'graphics', 
+			'graphics',
 			'effectiveBodyMeasurement',
 			'componentStackManager',
 			function (graphics, effBodyMes, componentStackManager) {
@@ -614,7 +614,7 @@
 					x: drawResult.width
 				});
 
-				// Apply translation additional to the component, which is just the component position move in 
+				// Apply translation additional to the component, which is just the component position move in
 				// horizontal, in this case, since its the first component it would be 0
 				axisGroup.attr({
 					'class': 'axis y',
@@ -654,12 +654,12 @@
 	};
 
 	/*
-	 * Draws labels just left to the chart body. This labels are essentially the model of the Y axis. What ever is  
+	 * Draws labels just left to the chart body. This labels are essentially the model of the Y axis. What ever is
 	 * present in model will be drawn as label. Once the labels are plotted the postDrawingHook for the same is called.
 	 *
 	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
 	 * @param measurement {Object} - Measurement of the body of the Grid
-	 * @return {Object} - A simple key value pair that gives back the width taken and any offsetTranslation which is 
+	 * @return {Object} - A simple key value pair that gives back the width taken and any offsetTranslation which is
 	 * suggested
 	 */
 	YAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
@@ -703,7 +703,7 @@
 	 *
 	 * @param targetGroup {SVGGraphicsElement} - Group element under which the labels will be drawn
 	 * @param measurement {Object} - Measurement of the body of the Grid
-	 * @return {Object} - A simple key value pair that gives back the width taken and any offsetTranslation which is 
+	 * @return {Object} - A simple key value pair that gives back the width taken and any offsetTranslation which is
 	 * suggested. If not drawn it return 0 as value of the keys.
 	 */
 	YAxisModel.prototype.drawAxisName = function (targetGroup, measurement) {
@@ -725,7 +725,7 @@
 		// If axis name is present draw it and return the space taken, else return no space taken
 		if (axisName) {
 			textWidth = meta.axisNameMetrics.width;
-			
+
 			plotItem = targetGroup.append('text').attr({
 				x: measurement.x + textWidth / 2,
 				y: height / 2 - meta.axisNameMetrics.height / 2,
@@ -741,13 +741,13 @@
 	};
 
 	/*
-	 * Manages the init of a ColorAxis class from the configiuration. This contains the definition of the ColorAxis 
+	 * Manages the init of a ColorAxis class from the configiuration. This contains the definition of the ColorAxis
 	 * classes and initialize the class based on the configuration. Currently the supported conf are
 	 * code : {
 	 *	key: 'name',
 	 *	colors: ['#FFA726', '#9E9E9E', '#607D8B'],
 	 *	type: 'series'
-	 * } 
+	 * }
 	 * This instantiates the SeriesColorAxis class. If this color configuration is used the datasets are colored form
 	 * the colors key.
 	 *
@@ -757,7 +757,7 @@
 	 *	colors: ['#FF6789', '#2196F3'],
 	 *	type: 'gradient'
 	 * }
-	 * This instantiates the GradientColorAxis class. If this color configuration is used the data needs to have a 
+	 * This instantiates the GradientColorAxis class. If this color configuration is used the data needs to have a
 	 * colorValue key which will take the color from the gradient scale.
 	 *
 	 * @todo Provision to add custom axis
@@ -769,11 +769,11 @@
 		/*
 		 * Abstract implementation of the color axis. This class cannot be used in a standalone manner. Derived class
 		 * needs to give implementation of few methods to be able to completely draw the axis.
-		 * This takes care of all the main color axis related operations. Color axis is only the rect with fill colors. 
+		 * This takes care of all the main color axis related operations. Color axis is only the rect with fill colors.
 		 * Derived class needs to take care of the text drawing.
 		 *
 		 * @param colorAxisData {Object} - Color configuration from user input
-		 * @constructor 
+		 * @constructor
 		 */
 		function ColorAxisBase (colorAxisData) {
 			this.colorAxisData = colorAxisData;
@@ -799,11 +799,11 @@
 
 		/*
 		 * Does space calculation prior to drawing.
-		 * Each component should be able to calculate space before it is drawn. These functions and drawing functions 
-		 * uses angular like dependency invocation. Since various components might need different chart metrics to 
+		 * Each component should be able to calculate space before it is drawn. These functions and drawing functions
+		 * uses angular like dependency invocation. Since various components might need different chart metrics to
 		 * calculate the space, it is upto the component to inject the dependency in itself.
 		 * See DEPENDENCY INVOCATION / INJECTION at top for list of all dependencies.
-		 *	
+		 *
 		 * This only takes care of the axis space only. It calls getAdditionalSpace of the derived class to get the
 		 * further space for placing the labels.
 		 *
@@ -822,26 +822,26 @@
 
 					// Asks the for additional space excluding the axis. Text plotted, margin space comes under this
 					additionalSpaceTaken = this.getAdditionalSpace();
-					// Total height taken is the additional space and the height taken to draw the axis rect.					
+					// Total height taken is the additional space and the height taken to draw the axis rect.
 					totalHeightTaken = colorAxisData.height + additionalSpaceTaken;
 
 					// Reduces the body height by this amount so that color axis can be drawn
 					measurement.height -= totalHeightTaken + margin;
 
 					// Let the componentStackManager know about the orientation, position and how much width it is going
-					// to take if plotted. 
-					componentStackManager.placeInStack(stackingKeys.VERTICAL, this.stackingOrder)(this, { 
+					// to take if plotted.
+					componentStackManager.placeInStack(stackingKeys.VERTICAL, this.stackingOrder)(this, {
 						height: totalHeightTaken
 					});
 
 				}.bind(this)
 			]);
 		};
-		
+
 		/*
-		 * This is the most important (probabily the only useful) function for the component which uses colorAxis. This 
-		 * maps a value to a color. 
-		 * Each derived class has its own way to map a continuous or discrete domain to a discrete color range. This 
+		 * This is the most important (probabily the only useful) function for the component which uses colorAxis. This
+		 * maps a value to a color.
+		 * Each derived class has its own way to map a continuous or discrete domain to a discrete color range. This
 		 * function in turn calls the mapping function of the derived class.
 		 *
 		 * @param: domainValue {Number | Enum} - The value which would be mapped to a color.
@@ -856,7 +856,7 @@
 		 * Clipping is used on the axis rectangle to divide it in sections. By default no sections are made on the axis.
 		 * Derived class might return the String format of the clip rect if sections are required.
 		 *
-		 * @return {String | undefined | null} - If sections on axis is required return string format of clip path url 
+		 * @return {String | undefined | null} - If sections on axis is required return string format of clip path url
 		 *										otherwise null or undefined
 		 */
 		ColorAxisBase.prototype.getClippedRect = function () {
@@ -867,10 +867,10 @@
 		/*
 		 * This function is called when the axis needs to be colored. Whatever this function returns is set as the value
 		 * of fill attribute of the axis.
-		 * 
+		 *
 		 * @param svgDefsManager {miniSvgDefsManager} - API to create gradient, clip-path etc.
 		 * @param stops {Array} -  Array of svg stop element in a key value pair.
-		 *						{ offset: change ratio in percentage, 'stop-color': hex color code, 'stop-opacity': 1 }
+		 *	{ offset: change ratio in percentage, 'stop-color': hex color code, 'stop-opacity': 1 }
 		 *
 		 * @return {String} - String format of gradient url
 		 */
@@ -880,8 +880,8 @@
 
 		/*
 		 * Draws the color axis itself. This only draw the axis rect and calls postAxisPlotDrawing of derived class for
-		 * additional drawing viz marker, labels. This drawing function like axes functions uses angular like dependency 
-		 * invocation. Since various components might need different chart metrics to calculate the space, it is upto 
+		 * additional drawing viz marker, labels. This drawing function like axes functions uses angular like dependency
+		 * invocation. Since various components might need different chart metrics to calculate the space, it is upto
 		 * the component to inject the dependency in itself.
 		 * See DEPENDENCY INVOCATION / INJECTION at top for list of all dependencies.
 		 *
@@ -894,7 +894,7 @@
 
 			// Asks the controller for the dependency
 			controller([
-				'graphics', 
+				'graphics',
 				'effectiveBodyMeasurement',
 				'componentStackManager',
 				'globalTranslate',
@@ -933,13 +933,13 @@
 					// Calls for specifics drawibg like marker label etc
 					this.postAxisPlotDrawing(measurement, this.stopsConfObj);
 
-					// Apply translation to the component, if any global translation happened in the body. 
+					// Apply translation to the component, if any global translation happened in the body.
 					// If in a horizontal stacking if any component is placed before the GridBody, its more likely that
 					// a global transalation will happen. This transalation is calculated when all the components left
 					// to the GridBody manages their own space.
 					axisGroup.attr({
 						'class': 'axis color',
-						'transform': 'translate(' + (0 + (globalTranslate.x || 0)) +',' + 
+						'transform': 'translate(' + (0 + (globalTranslate.x || 0)) +',' +
 							(stackedItem.pos + (globalTranslate.y || 0)) + ')'
 					});
 
@@ -998,11 +998,11 @@
 		function SeriesColorAxis (colorAxisData, data) {
 			ColorAxisBase.call(this, colorAxisData);
 
-			// Registers the color retiever function which does the mapping between value and color
+			// Registers the color retriever function which does the mapping between value and color
 			this.colorRetrieverFn = this.getColorBySeriesName;
 			// Stores the labels to be plotted beneath the axis rect
 			this.labelModel = [];
-			
+
 			// Prepares the label model from the data
 			this.extractLabelModel(data);
 		}
@@ -1087,7 +1087,7 @@
 		};
 
 		/*
-		 * This is used the color the legend axis. It reads the color input and creates svg gradient stops. The 
+		 * This is used the color the legend axis. It reads the color input and creates svg gradient stops. The
 		 * calculation of the stops happen here. If the axis is of two discrete solid colors that too is acheived by two
 		 * gradient colors which have sharp transition. Ex.
 		 * 0%   - FF0000
@@ -1119,11 +1119,11 @@
 				length,
 				itr;
 
-			// Iterates the model to generate the stops. Does not account the 0% and 100% as svg acutomatically 
+			// Iterates the model to generate the stops. Does not account the 0% and 100% as svg acutomatically
 			// takes care of this
 			for (index = 1, length = labelModel.length; index < length; index++) {
 				colorIndex = index - 1;
-				// Iterates two times for each labelModel, this is because if there is a change at 50%, the svg expect 
+				// Iterates two times for each labelModel, this is because if there is a change at 50%, the svg expect
 				// it like - 50%  - FF0000,  50%  - 00FF00
 				itr = 1;
 				ratio = floor(index / length * 100);
@@ -1149,10 +1149,10 @@
 		 * This creates a clip-path in case the axis needs to be divided in sections.
 		 * @param svgDefsManager {miniSvgDefsManager} - API to create gradient, clip-path etc.
 		 * @param options {Object} - Configuration options required for drawing clip path. This typically contains
-		 *							{
-		 *								ratios: Ratios of break
-		 *								refRect: The reference on which clipping will be applied
-		 *							}
+		 *			{
+		 *				ratios: Ratios of break
+		 *				refRect: The reference on which clipping will be applied
+		 *			}
 		 *
 		 * @return {String} clip-path url
 		 */
@@ -1168,10 +1168,10 @@
 		/*
 		 * @todo instead of sending parameters, it should get the parameters by controller from the parent class.
 		 *
-		 * This function takes care of drawing the additional components, if any. The space adjustment of all these 
-		 * should be done in getAdditionalSpace function 
+		 * This function takes care of drawing the additional components, if any. The space adjustment of all these
+		 * should be done in getAdditionalSpace function
 		 *
-		 * @param: measurement {Object} - The measurement of the legend axis. Since everything else will be aligned 
+		 * @param: measurement {Object} - The measurement of the legend axis. Since everything else will be aligned
 		 *									against this.
 		 * @param: stopsConfObj {Object} - The output of getStopsConfiguration
 		 */
@@ -1201,8 +1201,8 @@
 				// These are placed at every breaks (section) along the axis.
 				ratio = breakRatios[index];
 				x = measurement.x + measurement.width * ratio / 100 + axisBreak / 2;
-				
-				// These are laid out vertically. Markers starts from the beginning of the axis top and vertically 
+
+				// These are laid out vertically. Markers starts from the beginning of the axis top and vertically
 				// grows till the point labels are drawn
 				group.append('line').attr({
 					x1: x,
@@ -1212,7 +1212,7 @@
 				}).style(colorAxisData.marker.style);
 			}
 
-			// Since n ratio in breakRatios break the axis in (n + 1) sections, it is required to to add the last or 
+			// Since n ratio in breakRatios break the axis in (n + 1) sections, it is required to to add the last or
 			// first ratio in the array (since it is not included). Hence for n section we would get n element array.
 			breakRatios.push(100);
 			// Draw texts along the axis. Here the labels are placed in the middle of each sections.
@@ -1220,7 +1220,7 @@
 				ratio = breakRatios[index];
 				blockLength = measurement.width * (ratio - (breakRatios[index - 1] || 0)) / 100;
 				x = measurement.x + measurement.width * ratio / 100;
-				
+
 				label = labelModel[index];
 				// Calls the preDrawingHook of the user, before plotting
 				label = preDrawingHook(label);
@@ -1231,21 +1231,50 @@
 					x: x - blockLength / 2,
 					y: measurement.y + measurement.height + textMetrics.height / 2 + margin
 				}).text(label).style(labelConf.style);
-			}			
+			}
 
 			// Calls the preDrawingHook of the user once plotted
 			postDrawingHook(elemArr);
 		};
 
+		/*
+		 * Another specific implementation of the color axis. This type of color axis are preferred when single or
+		 * multiple datasets are plotted simultaneously and comparing all the datapoints is the main goal. Typical DS
+		 * code : {
+		 * 	key: 'data.colorValue',
+		 * 	values: [0, 100],
+		 * 	colors: ['#FF6789', '#2196F3'],
+		 * 	type: 'gradient'
+		 * }
+		 * The code.key maps to the colorValue key of the set level data obj
+		 * The code.values are the array of values associated with array of colors
+		 * The code.colors are the array of colors associated with array of values
+		 * The code.type is what determines it to be a GradientColorAxis
+		 *
+		 * @param colorAxisData {Object} - Color configuration from user input
+		 * @param data {Object} - The complete chat data
+		 */
 		function GradientColorAxis () {
 			SeriesColorAxis.apply(this, arguments);
 
+			// Registers the color retriever function which does the mapping between value and color
 			this.colorRetrieverFn = this.getColorByContinuousDomain;
 		}
 
 		GradientColorAxis.prototype = Object.create(SeriesColorAxis.prototype);
 		GradientColorAxis.prototype.constructor = GradientColorAxis;
 
+		/*
+		 * This creates a clip-path in case the axis needs to be divided in sections.
+		 * @param svgDefsManager {miniSvgDefsManager} - API to create gradient, clip-path etc.
+		 * @param options {Object} - Configuration options required for drawing clip path. This typically contains
+		 *			{
+		 *				ratios: Ratios of break
+		 *				refRect: The reference on which clipping will be applied
+		 *			}
+		 *
+		 * @return {String} clip-path url
+		 */
 		GradientColorAxis.prototype.getClippedRect = function (svgDefsManager, options) {
 			var colorAxisData = this.colorAxisData,
 				meta = this.meta,
@@ -1259,28 +1288,49 @@
 				breakRatios = [],
 				i = 1;
 
+			// Valid value of breaks can be more than 2, if invalid return
+			// @todo take care of the negative values. Abs or ignore?
 			if (!(breaks && breaks - 1)) { return null; }
 
 			length = ratios.length - 1;
 			max = ratios[length];
 			min = ratios[0];
 
+			// Gets how much of space (in ratio), a section takes
 			sectionSpread = max / breaks;
 
 			while (i !== breaks) {
+				// Saves the cumulative breaks in array. Lets say if the breaks = 5, the array would contain
+				// [20, 40, 60, 100]
 				breakRatios.push((i++) * sectionSpread);
 			}
 
+			// Gap between two consecutive sections
 			options.tolerance = axisBreak;
 			options.ratios = breakRatios.slice(0);
 
+			// Adds the initial and final ratio in the array
 			breakRatios.splice(0, 0, min);
 			breakRatios.splice(breakRatios.length, 0, max);
+
+			// Saves it as meta information
 			meta.breakRatios = breakRatios;
-			
+
 			return svgDefsManager.createClipRect('color-axis-clip', true, options);
 		};
 
+		/*
+		 * This is used the color the legend axis. It reads the color input and creates svg gradient stops. The
+		 * calculation of the stops happen here. This has one array of values and another array of colors. Each value is
+		 * associated with a color. Assume the value array be [0, 50, 100] and color array be ['#FF0000', '#00FF00',
+		 * '#0000FF']; then in this case for the first half of the axis the color would create a liner gradiend from red
+		 * to green and at the later half green to blue.
+		 *
+		 * @return {Object} - Stops configuration {
+		 * 	stopsConf: [{ offset: change ratio in percentage, 'stop-color': hex color code, 'stop-opacity': 1 }],
+		 * 	breakRatios: Ratios where the color has just began to change
+		 * }
+		 */
 		GradientColorAxis.prototype.getStopsConfiguration = function () {
 			var colorAxisData = this.colorAxisData,
 				meta = this.meta,
@@ -1302,20 +1352,24 @@
 				min,
 				max;
 
-
+			// Gets the extremes
 			length = values.length;
 			min = values[0];
 			max = values[length - 1];
 			for (index = 0; index < length; index++) {
+				// Brings down any linear scale to 0 - 100
 				ratio = (values[index] - min) / (max - min) * 100;
 				breakRatios.push(ratio);
 
+				// Creates stops which will be used when creating gradient
 				stop = merge(stopStub, {});
 				stop.offset = ratio + PERCENT_STR;
-				stop['stop-color'] = colors[index]; 
+				stop['stop-color'] = colors[index];
+
 				stops.push(stop);
 			}
 
+			// Saves the interpolating function to be used when get color by values. Its already provided by d3.
 			meta.colorFn = d3.scale.linear().domain(code.values).range(code.colors);
 
 			return {
@@ -1325,7 +1379,28 @@
 			};
 		};
 
-		GradientColorAxis.prototype.postAxisPlotDrawing = function (measurement, stopsConfObj) { 
+		/*
+		 * Color retiever function which does the mapping between value and color
+		 *
+		 * @param value {String} - value of the point which is to be mapped to color
+		 *
+		 * @return {Hex} - Color code in hex corrosponding to the name
+		 */
+		GradientColorAxis.prototype.getColorByContinuousDomain = function (value) {
+			return this.meta.colorFn(value);
+		};
+
+		/*
+		 * @todo instead of sending parameters, it should get the parameters by controller from the parent class.
+		 *
+		 * This function takes care of drawing the additional components, if any. The space adjustment of all these
+		 * should be done in getAdditionalSpace function
+		 *
+		 * @param: measurement {Object} - The measurement of the legend axis. Since everything else will be aligned
+		 *									against this.
+		 * @param: stopsConfObj {Object} - The output of getStopsConfiguration
+		 */
+		GradientColorAxis.prototype.postAxisPlotDrawing = function (measurement, stopsConfObj) {
 			var meta = this.meta,
 				colorAxisData = this.colorAxisData,
 				group = this.graphics.group,
@@ -1345,20 +1420,23 @@
 				length,
 				x;
 
+			// If the breakRatios is available in meta, uses it because it is the modified and recent calculated 
+			// breakRatios. Otherwise uses the default one.
 			if (!((breakRatios = meta.breakRatios) && meta.breakRatios.length)) {
 				breakRatios = stopsConfObj.breakRatios;
 			}
 
+			// Get the extremes from the value array
 			values = stopsConfObj.values;
 			min = values[0];
 			max = values[values.length - 1];
 
-			// Draw text
+			// Draw texts along the axis. These texts are placed at middle of the section division.
 			for (index = 0, length = breakRatios.length; index < length; index++) {
 				ratio = breakRatios[index];
 				blockLength = measurement.width * (ratio - (breakRatios[index - 1] || 0)) / 100;
 				x = measurement.x + measurement.width * ratio / 100;
-				
+
 				label = min + ((max - min) * ratio / 100);
 				label = preDrawingHook(label);
 				textMetrics = getTextMetrics(label, labelConf.style);
@@ -1370,19 +1448,27 @@
 			}
 		};
 
-		GradientColorAxis.prototype.getColorByContinuousDomain = function (value) {
-			return this.meta.colorFn(value);
-		};
 
 		return {
+			/*
+			 * Initializes the color axis manager by providing access to configuration. It reads the config and 
+			 * initializes the required colorAxis (SeriesColorAxis or GradientColorAxis)
+			 *
+			 * @param colorAxisData {Object} - Color configuration from user input
+		 	 * @param data {Object} - The complete chat data
+		 	 *
+		 	 * @return {ColorAxisBase} - Instance of the required color axis class
+			 */
 			init: function (colorConfig, chartData) {
 				var defaultColorAxisData = stubs.getForColorAxis(),
 					merge = utils.merge,
 					colorAxisData = {};
 
+				// Gets the user overridden default data
 				merge(colorConfig, colorAxisData);
 				merge(defaultColorAxisData, colorAxisData);
 
+				// Based on the config, calls the required class's constructor
 				switch(colorAxisData.code.type.toLowerCase()) {
 					case 'series':
 						axisInstance = new SeriesColorAxis(colorAxisData, chartData);
@@ -1390,7 +1476,7 @@
 
 					case 'gradient':
 						axisInstance = new GradientColorAxis(colorAxisData, chartData);
-						break;					
+						break;
 				}
 
 				return axisInstance;
@@ -1398,11 +1484,25 @@
 		};
 	})();
 
+	/*
+	 * The heart of data plot drawing. This is a (m x n) matrix where m is the y axis model length and n is the x axis
+	 * model length. If a data point is present for any cell, lets say for i = 5 and j = 3 where m = 10 and n = 10 
+	 * (10 x 10) matrix is created where in [5, 3] cell the data is set.
+	 * Initially when the matrix is prepared, it is set with a falsy value. Later on when the dataset is parsed value is
+	 * set for that cell.
+	 *
+	 * @todo: Incomplete implemention of events. unset is not fired.
+	 */
 	function DataModelMatrix () {
+		// Holds the original (m x n) matrix. Initially filled with falsy value.
 		this._matrix = [];
-		this._updateMatrix = {},
+		// Holds the updated cells only.
+		this._updateMatrix = {};
+		// Lookup model is what that constructs the matrix. What determines m and n is, comes from lookup model.
 		this.lookupModel = [];
-		this._elFns = [],
+		// Holds all the callback to be called when updating dataModelMatrix is complete.
+		this._elFns = [];
+		// Default event maps, if anything is not set.
 		this.eventMap = {
 			set: EMPTY_FN,
 			unset: EMPTY_FN,
@@ -1412,6 +1512,18 @@
 
 	DataModelMatrix.prototype.constructor = DataModelMatrix;
 
+	/*
+	 * Adds listener when a particular event happens on dataModelMatrix. 
+	 * Currently, the are two events available on which the subscriber can registered to be notified, 
+	 * 1. When a cell is set
+	 * 2. When a cell is unset
+	 *
+	 * @param eventMap {Object} - A key value pair that defines the event map
+	 *		{
+	 *			set: function () { ... }
+	 *			unset: function () { ... }
+	 * 		}
+	 */
 	DataModelMatrix.prototype.addModelUpdateListener = function (eventMap) {
 		var eMap = this.eventMap,
 			eSet,
@@ -1425,12 +1537,23 @@
 		eUnset && typeof eUnset === 'function' && (eMap.unset = eUnset);
 	};
 
+	/*
+	 * Adds listener when model preparation completes 
+	 *
+	 * @param fn {Function} - Function to be registered
+	 * @param context {Object} - Context to be set when fn is called
+	 *
+	 * @todo make it a part of addModelUpdateListener?
+	 */
 	DataModelMatrix.prototype.onEnd = function (fn, context) {
 		var updateM = this._updateMatrix,
 			fns = this._elFns;
 
+		// Pushes to the callback array
 		fns.push([fn, context]);
 
+		// Registers a custom function to the end instead of setting the callback directly directly. This manages the 
+		// callback's context and additional param setting
 		this.eventMap.end = function () {
 			var fn,
 				fnIndex,
@@ -1438,19 +1561,37 @@
 
 			for (fnIndex = 0, fnLength = fns.length; fnIndex < fnLength; fnIndex++) {
 				fn = fns[fnIndex];
+				// Calls it with custom context and update matrix
+				// @todo takes updateM from parameter instead of updateM = this._updateMatrix
 				fn[0].call(fn[1], updateM);
 			}
 		};
 	};
 
+	/*
+	 * Fires an event i.e. calls the listeners.
+	 * Event that can be fired are set, unset, end
+	 *
+	 * @param eventName {Enum} - Type of event's listener to be fired.
+	 */
 	DataModelMatrix.prototype.fireEvent = function (eventName) {
 		this.eventMap[eventName]();
 	};
 
+	/*
+	 * Sets or creates in the datamodelmatrix cell.
+	 * 2 ways it can be called dataModelMatrix.set(i, []) and dataModelMatrix.set(i, j, [])
+	 * If j is not sent, that means another row is getting created and sun sequent calls will have j in params.
+	 *
+	 * @param i {Integer} - the column index
+	 * @param j {Integer} - Optional. the row index.
+	 * @param val {Array | Function} - The value to be set. If the value is function, then it will be called sending the
+	 *		previous value as parameters
+	 */
 	DataModelMatrix.prototype.set = function () {
 		var matrix = this._matrix,
-			i, 
-			j, 
+			i,
+			j,
 			fn,
 			prevVal,
 			val,
@@ -1459,21 +1600,35 @@
 
 		i = arguments[0];
 		if (arguments.length === 2) {
+			// If j is not present, value would be the second argument
 			val = arguments[1];
 			matrix[i] = val;
 		} else if (arguments.length === 3) {
 			j = arguments[1];
 			fn = arguments[2];
-			
+
+			// Gets the previous value before setting the new value, as this will be sent to the function. Now its upto
+			// the function to retain the old and new or discard the old or discard the new
 			prevVal = matrix[i][j];
 			matrix[i][j] = val = fn(prevVal);
 
+			// Saves it in update matrix. The updateMatrix is actually an associative array (Object) that contains only
+			//  the updated cells. Thats why the index is like '12', '21', '33'
 			val && (updateM[i.toString() + j] = [i, j, val]);
-			
+
+			// Calls a set listener
 			eSet(i, j, val);
-		} 
+		}
 	};
 
+	/*
+	 * Gets the data from matrix.
+	 * 
+	 * @return {DataModelMatrix._matrix | Array | DataGraphicsHandler | Integer | Boolean} - 
+	 * 		If called like dataModelMatrix.get() returns DataModelMatrix._matrix
+	 *		If called like dataModelMatrix.get(i) returns Array. This is essentially the row.
+	 *		If called like dataModelMatrix.get(i, j) returns DataGraphicsHandler if set or falsy value
+	 */
 	DataModelMatrix.prototype.get = function () {
 		var matrix = this._matrix,
 			arg0,
@@ -1492,25 +1647,46 @@
 		}
 	};
 
+	/*
+	 * Manages the graphics element drawing in relation to the dataset drawing and datamodel matrix. Like where ever
+	 * the dataplots are tracker needs to be placed. These all are managed by this.
+	 */
 	function DataGraphicsHandler () {
+		// Saves the series which occupies a cell 
 		this.series = [];
+		// Saves the graphics element per series index for a cell.
 		this.dsGraphics = [];
+		// Adds tracker generator function per series index for a cell.
 		this.trackerGraphicsFn = [];
+		// Adds tracker element per series index for a cell.
 		this.trackerGraphics = [];
 	}
 
 	DataGraphicsHandler.prototype.constructor = DataGraphicsHandler;
 
+	/*
+	 * Adds series to the series list. This in turns conveys the fact that, data from two series are trying to occupy 
+	 * one cell in the matrix
+	 * 
+	 * @param series {Series} - series to be added to the list
+	 */
 	DataGraphicsHandler.prototype.addSeries = function (series) {
 		this.series.push(series);
 	};
 
+	/*
+	 * Adds dataset graphics elements to be drawn on grid.
+	 *
+	 * @param index {Integer} - series index. This extracts data, functions from the required ds to plot.
+	 * @params element {SVGGraphicsElement} - the dataset rect plotted
+	 * @param autoTrackerParam {Array} - Automatic tracker drawing function. Generally in the form of [i, j, fn]
+	 */
 	DataGraphicsHandler.prototype.addDSGraphicsElement = function (index, element, autoTrackerParam) {
 		var fn,
 			param;
 
 		this.dsGraphics[index] = element;
-		
+
 		if (!autoTrackerParam) {
 			return;
 		}
@@ -1521,6 +1697,12 @@
 		this.trackerGraphicsFn[index] = fn.apply(this, param);
 	};
 
+	/*
+	 * Darws a tracker on a cell. This default drawing happens the way dataset is drawn. This one more level of function
+	 * is required so that it can save the reference of tracker plot.
+	 *
+	 * @param fn {Function} - function to be called to draw tracker
+	 */
 	DataGraphicsHandler.prototype.autoTrackerExecutor = function (fn) {
 		var eFns = this.trackerGraphicsFn,
 			eFn,
@@ -1533,25 +1715,37 @@
 		}
 	};
 
+	/*
+	 * Draws tracker on top of datasets in the grid. Trackers are for interaction. Drawing tracker means plotting an 
+	 * transparent rect on top. This component is initialized only once by calling the constructor. No more method calls
+	 * happens from outside through out the life time of the component. It should be internally capable enough to draw
+	 * the plots when the data model changes.
+	 *
+	 * @param controller {Function} - Helps to inject the required dependencies which are asked
+	 */
 	function TrackerModel (controller) {
 		var defaultTracketConf = stubs.getForTracker(),
 			merge = utils.merge;
 
+		// Gets the tracker configuration
 		this.config = {};
 		merge(defaultTracketConf, this.config);
 
 		controller([
 			'dataModelMatrix',
-			'graphics',	
+			'graphics',
 			'effectiveBodyMeasurement',
 			'axes',
 			function (dataModelMatrix, graphics, effectiveBodyMeasurement, axes) {
+				// Prepares the draw function by sending one time set up information
 				this.draw(dataModelMatrix, {
 					parent: graphics.chartBody,
 					xBlockSize: effectiveBodyMeasurement.width / axes.x.getModel().length,
 					yBlockSize: effectiveBodyMeasurement.height / axes.y.getModel().length
 				});
 
+				// Register the same draw function to be called with the updated matrix when the dataModel preparation
+				// is complete.
 				dataModelMatrix.onEnd(this.draw, this);
 			}.bind(this)
 		]);
@@ -1559,37 +1753,58 @@
 
 	TrackerModel.prototype.constructor = TrackerModel;
 
+	/*
+	 * Draws tracker on the grid.
+	 * This method is first called with one time set up params. It stores these params in closure and override the
+	 * definition of draw itself, as a side effect. Now if draw is called with the updateMatrix it draws it on the grid.
+	 *
+	 * @param: options {Object} - One time set up parameters
+	 *		{
+	 *			parent: Parent group under which the dataset group will be created,
+	 *			xBlockSize: For one block in a grid the length of a side towards x axis,
+	 *			yBlockSize: For one block in a grid the length of a side towards y axis
+	 * 		}
+	 */
 	TrackerModel.prototype.draw = function (dataModelMatrix, options) {
 		var parent = options.parent,
 			xBlockSize = options.xBlockSize,
 			yBlockSize = options.yBlockSize,
 			group;
 
+		// Creates a new group which will be parents of all the color rects (dataset plots).
 		group = parent.append('g').attr({
 			class: 'tracker'
 		});
 
+		/*
+		 * Actually draws tracker on grid. This draws the defaukt tracker. The defaul tracker is where ever there is 
+		 * dataset rect, there is a tracker. 
+		 */
 		this.draw = function () {
 			var self = this,
 				li = dataModelMatrix.get().length,
 				lj = dataModelMatrix.get(0).length,
-				trackerFn,
+				_trackerFn,
 				handler,
 				i,
 				j;
 
-			trackerFn = function (trackerFn) {
+			_trackerFn = function (trackerFn) {
 				return trackerFn(group).style(self.config.style);
 			};
 
 			for (i = 0; i < li; i++) {
+				// Iterates through all the columns
 				for (j = 0; j < lj; j++) {
+					// For each column, iterates through all the rows and get the handlers for the cell
 					handler = dataModelMatrix.get(i, j);
 
 					if (handler) {
-						handler.autoTrackerExecutor(trackerFn);
+						// If data is present, handler is valid hence draws the default tracker covering the whole cell
+						handler.autoTrackerExecutor(_trackerFn);
 
 					} else {
+						// If no data is present for the cell, still draws an tracker for the empty cell
 						group.append('rect').attr({
 							y: i *  yBlockSize,
 							x: j * xBlockSize,
@@ -1602,13 +1817,22 @@
 		};
 	};
 
+	/*
+	 * Draws the datasets in the grid. Drawing dataset means coloring a grid block.
+	 * This component is initialized only once by calling the constructor. No more method calls happens from outside 
+	 * through out the life time of the component. It should be internally capable enough to draw the plots when the 
+	 * data model changes.
+	 *
+	 * @param controller {Function} - Helps to inject the required dependencies which are asked
+	 */
 	function DatasetRenderer (controller) {
 		controller([
 			'dataModelMatrix',
-			'graphics',	
+			'graphics',
 			'effectiveBodyMeasurement',
 			'axes',
 			function (dataModelMatrix, graphics, effectiveBodyMeasurement, axes) {
+				// Prepares the draw function by sending one time set up information
 				this.draw({
 					parent: graphics.chartBody,
 					xBlockSize: effectiveBodyMeasurement.width / axes.x.getModel().length,
@@ -1616,6 +1840,8 @@
 					colorAxis: axes.colorAxis
 				});
 
+				// Register the same draw function to be called with the updated matrix when the dataModel preparation
+				// is complete.
 				dataModelMatrix.onEnd(this.draw, this);
 			}.bind(this)
 		]);
@@ -1623,6 +1849,19 @@
 
 	DatasetRenderer.prototype.constructor = DatasetRenderer;
 
+	/*
+	 * Draws the dataset on the grid.
+	 * This method is first called with one time set up params. It stores these params in closure and override the
+	 * definition of draw itself, as a side effect. Now if draw is called with the updateMatrix it draws it on the grid.
+	 *
+	 * @param: options {Object} - One time set up parameters
+	 *		{
+	 *			parent: Parent group under which the dataset group will be created,
+	 *			xBlockSize: For one block in a grid the length of a side towards x axis,
+	 *			yBlockSize: For one block in a grid the length of a side towards y axis,
+	 *			colorAxis: Color axis to get the color info
+	 * 		}
+	 */
 	DatasetRenderer.prototype.draw = function (options) {
 		var parent = options.parent,
 			xBlockSize = options.xBlockSize,
@@ -1632,10 +1871,16 @@
 			getValueByKeyChain = utils.getValueByKeyChain,
 			group;
 
+		// Creates a new group which will be parents of all the color rects (dataset plots).
 		group = parent.append('g').attr({
 			class: 'dataset'
-		});			
+		});
 
+		/*
+		 * Actually draws the dataset on grid from updateMatrix
+		 *
+		 * @param: updateMatrix {DataModelMatrix._updateMatrix} - The update matrix based on what the plots are drawn
+		 */
 		this.draw = function (updateMatrix) {
 			var dataSeries,
 				lastSeries,
@@ -1650,6 +1895,8 @@
 				seriesData,
 				preCurriedFn;
 
+			// preCurriedFn is not our regular function. Its not assured that the function will get all the parameters 
+			// at once. Hence this is curried later on.
 			preCurriedFn = function (i, j, g) {
 				return g.append('rect').attr({
 					y: i *  yBlockSize,
@@ -1660,25 +1907,34 @@
 			};
 
 			for (index in updateMatrix) {
+				// For each update in the matrix, repeat the process
+				
 				if (!hasOwnProp.call(updateMatrix, index)) {
 					continue;
 				}
 
+				// Retrieves the gridIndex (i, j), graphicsHandler and series information from the update matrix
 				updateArr = updateMatrix[index];
 				i = updateArr[0];
 				j = updateArr[1];
 				dataSeries = (dataGraphicsHandler = updateArr[2]) && updateArr[2].series || [];
 
 				if (dataSeries.length === 0) {
+					// If no series is found for plotting, continue
 					continue;
-				}	
+				}
 
+				// If two series have data to be plotted at same position, by default we plot the last series, i.e. 
+				// every other series is overlapped with the last series
 				seriesIndex = dataSeries.length - 1;
 				lastSeries = dataSeries[seriesIndex];
 
+				// Retrieves the set data from the series itself by position
 				seriesData = lastSeries.getSeriesData(i, j);
+				// Get the value  of the key which will be used to retrieve the color from the color axis
 				colorDomainVal = getValueByKeyChain(seriesData, colorAxis.key);
 
+				// Draws the color filled rectangle on the grid.
 				elem = group.append('rect')
 					.attr({
 						y: i *  yBlockSize,
@@ -1689,6 +1945,8 @@
 					.style(lastSeries.conf.style)
 					.style({ 'fill' : colorAxis.getColorByDomain(colorDomainVal) });
 
+				// Adds this information to dataGraphicsHandler, so that if any component drawing is dependent on this,
+				// can be drawn easily, like the default tracker
 				dataGraphicsHandler.addDSGraphicsElement(seriesIndex, elem, [i, j,curry(preCurriedFn)]);
 			}
 		};
@@ -1722,6 +1980,12 @@
 		};
 	};
 
+	/*
+	 * Parses the user given data to GridMap internal data structures.
+	 * 
+	 * @param rawData {Object} - Users data
+	 * @param controller {Function} - Helps to inject the required dependencies which are asked
+	 */
 	function DatasetParser (rawData, controller) {
 		this.rawData = rawData;
 
@@ -1738,25 +2002,46 @@
 
 	DatasetParser.prototype.constructor = DatasetParser;
 
+	/*
+	 * Initializes the dataModelMatrix with default value. This kinds of relate the grid-view to grid-model. Here the 
+	 * view is empty (only grids are present, no set data is drawn) because the model only contains default data. 
+	 *
+	 * @param rowModel {Array} - The model of x axis
+	 * @param colModel {Array} - The model of y axis
+	 *
+	 * @return {DataModelMatrix} - The updated data model matrix
+	 */
 	DatasetParser.prototype.getDataModelMatrix = function (rowModel, colModel) {
 		var dataModelMatrix = this.dataModelMatrix,
+			lookupModel = dataModelMatrix.lookupModel,
 			i,
 			li,
 			j,
 			lj;
 
-		dataModelMatrix.lookupModel.push(colModel);
-		dataModelMatrix.lookupModel.push(rowModel);
+		// Saves the coloumn model first, this will be iterated with the index i. Sunsequently saves the row model which
+		// will be iterated with the index j. Hence the order is important.
+		lookupModel.push(colModel);
+		lookupModel.push(rowModel);
 
+		// Iterates for the column model
 		for (i = 0, li = colModel.length; i < li ; i++) {
+			// For every column, creates an array to accommodate the rows (basically creates a 2D array / matrix)
 			dataModelMatrix.set(i, []);
 			for (j = 0, lj = rowModel.length; j < lj ; j++) {
+				// For every columns and every rows now, set a default falsy value.
 				dataModelMatrix.set(i, j, function () { return 0; });
 			}
 		}
+
+		// At the end of this, similar to the view a matrix is created, which is filled wwith 0.
 		return dataModelMatrix;
 	};
 
+	/*
+	 * Parses the dataset entered by user. Parsing means it converts the user input to a DataModelMatrix.
+	 * Once parsing is done it fires the end event on dataModelMatrix
+	 */
 	DatasetParser.prototype.parse = function () {
 		var dataset = this.rawData,
 			length = dataset.length,
@@ -1777,9 +2062,12 @@
 			i,
 			j;
 
+		// This callback is called when a value is set in a cell. When its called it gets whatever was set earlier as 
+		// parameter.
 		function callback (prevObj){
 			var obj;
 
+			// If prevObj was created earlier use it other wise create a new instance of DataGraphicsHandler
 			obj = prevObj ? prevObj : new DataGraphicsHandler();
 
 			obj.addSeries(series);
@@ -1787,22 +2075,28 @@
 		}
 
 		for (index = 0; index < length; index++) {
+			// Iterates every series in the dataset
 			thisDataset = dataset[index];
-			
+
+			// Creates a new series object and sets the data
 			series = new Series (thisDataset.name, { style : thisDataset.style });
 			data = thisDataset.data;
 
 			for (setIndex = 0, setLength = data.length; setIndex < setLength; setIndex++) {
+				// For every series, iterates though the data, and checks the position (index) in the model itself
 				set = data[setIndex];
 				i = yLookup.indexOf(set[yKey]);
 				j = xLookup.indexOf(set[xKey]);
 
+				// Lets series know avout its position as well
 				series.addData(i, j, set);
+				// Sets in the dataModelMatrix cell by i and j look up
 				dataModelMatrix.set(i, j, callback);
 			}
 		}
 
-		dataModelMatrix.fireEvent('end');	
+		// Once preparation is done, raises the end event
+		dataModelMatrix.fireEvent('end');
 	};
 
 
@@ -1828,7 +2122,7 @@
 				},
 				set: EMPTY_FN
 			},
-	
+
 			Y_AXIS_KEY : {
 				enumerable : true,
 				configurable : false,
@@ -1852,7 +2146,7 @@
 				},
 				set: EMPTY_FN
 			},
-		
+
 			DS_RENDERER_KEY : {
 				enumerable : true,
 				configurable : false,
@@ -1864,7 +2158,7 @@
 				},
 				set: EMPTY_FN
 			},
-		
+
 			DS_PARSER_KEY : {
 				enumerable : true,
 				configurable : false,
@@ -1878,11 +2172,22 @@
 			}
 		});
 
+		/*
+		 * Register the components class to be used during drawing. Calling this function would save the ref of the 
+		 * class in components object. The first invocation happens during draw.
+		 *
+		 * This function has two modes. 
+		 * 1. When it's called with no args it registers all the default classes.
+		 * 2. When it's called with 2 args (key and class) it registers the class only.
+		 *
+		 * @param key {componentDef.key} - The key of the component to be registered
+		 * @param className {Constuctor} - Constructor of the class to be registered
+		 */
 		function registerComponentClasses (key, className) {
 			var config;
 
 			if (arguments.length === 0) {
-				// Default
+				// If no arguments are passed, default component registration happens
 				for (key in componentDef) {
 					config = componentDef[key];
 
@@ -1892,6 +2197,7 @@
 				return;
 			}
 
+			// If arguments are passed, registers the specified component
 			components[key] = className;
 		}
 
@@ -1956,7 +2262,7 @@
 						rStack.splice(i, 0, new StackOrder(instance, measurement));
 
 						measurementKey = stackName === stackKeys.VERTICAL ? 'height' : 'width';
-						
+
 						for (index = 0, length = rStack.length; index < length; index++) {
 							stackItem = rStack[index];
 							stackItem.pos = index ? cumulativeSum : 0;
@@ -1973,7 +2279,7 @@
 
 				getStackItemByInstance: function (stackName, instance) {
 					var rStack = masterStack[stackName],
-						index = 0, 
+						index = 0,
 						length = rStack.length,
 						stackItem;
 
@@ -1982,7 +2288,7 @@
 							return stackItem;
 						}
 					}
-				},				
+				},
 
 				getAdjascentElements: function (stackName, index) {
 					var rStack = masterStack[stackName];
@@ -1997,17 +2303,22 @@
 				var defaultData = stubs.getForChartBody(),
 					merge = utils.merge;
 
+				// Saves the reference of the root SVG tag and the data entered by user.
 				svg = svgDOMElement;
 				data = 	chartData;
 
+				// Overrides default data with user data
 				merge(config, conf);
 				merge(defaultData, conf);
 
+				// Empty stubs for dependency parameters which can be invoked using controller
 				diParams.axes = {};
 				diParams.effectiveChartMeasurement = {};
 
+				// Creates a new instance of dataModelMatrix per chart instance
 				diParams.dataModelMatrix = dataModelMatrix = new DataModelMatrix();
 
+				// Registers the defacult component classes
 				registerComponentClasses();
 			},
 
@@ -2018,7 +2329,7 @@
 			},
 
 			getKeys: function () {
-				return componentDef;	
+				return componentDef;
 			},
 
 			draw: function (measurement) {
@@ -2053,7 +2364,7 @@
 				effChartMes = diParams.effectiveChartMeasurement;
 				effChartMes.width = width - margin.left - margin.right;
 				effChartMes.height = height - margin.top - margin.bottom;
-				
+
 				bodyMetrics = diParams.effectiveBodyMeasurement = merge(effChartMes, {});
 
 				gridMain = chart.append('g').attr({
@@ -2094,14 +2405,19 @@
 					transform: 'translate(' + translate.x + ',' + translate.y + ')'
 				});
 
+				// Initializes a dataset parser with the given user data
+				// @todo Provision for user override
 				dsParser = new DatasetParser(data.dataset, dependencyController);
-				
+				// Prepares the dataModelMatrix from the x and y axis model. This fills the matrix with a default value.
+				// @todo change the name of the function. More like prepareDataModelMatrix
 				dataModelMatrix = dsParser.getDataModelMatrix(x.getModel(), y.getModel());
 
 				x.draw(dependencyController);
 				y.draw(dependencyController);
 				colorAxis.draw(dependencyController);
 
+				// Creates a new DatasetRenderer and TrackerModel. This two component should do the related drawing
+				// when model is changed
 				new DatasetRenderer (dependencyController);
 				new TrackerModel(dependencyController);
 
@@ -2116,17 +2432,17 @@
 			chartConf;
 
 		if (arguments.length > 1) {
-			_c = config;	
+			_c = config;
 		} else {
 			_c = {};
 		}
-		
+
 		chartConf = this.config = merge(_c, {});
-		merge(stubs.getForGridMap(), chartConf);	
+		merge(stubs.getForGridMap(), chartConf);
 		chartConf.parentContainer = utils.getContainer(chartConf.parentContainer);
 
 		this.chartData = chartData;
-		
+
 		this.svg = undefined;
 		this.extModules = {};
 	}
@@ -2147,7 +2463,7 @@
 	GridMap.prototype.render = function () {
 		var config = this.config,
 			parentContainer = config.parentContainer,
-			data = this.chartData, 
+			data = this.chartData,
 			//extModules = this.extModules,
 			//moduleKey,
 			//extModule,
@@ -2162,7 +2478,7 @@
 		gridManager.init(svg, data.chart, data);
 		gridManager.draw(config);
 		// chart = new Chart (svg, data.chart, data);
-		
+
 		// for (moduleKey in extModules) {
 		// 	extModule = extModules[moduleKey];
 		// 	chart['register' + moduleKey].apply(chart, extModule);
@@ -2172,7 +2488,7 @@
 	};
 
 	stubs = (function () {
-		
+
 		function getForGridMap () {
 			return {
 				parentContainer: doc,
@@ -2180,11 +2496,11 @@
 				width: 850,
 				margin: { top: 10, right: 10, bottom: 10, left: 10 }
 			};
-		} 
+		}
 
 		function getForAxis () {
 			return {
-				label: { 
+				label: {
 					margin: 3,
 					preDrawingHook: DEF_FN,
 					postDrawingHook : DEF_FN,
@@ -2198,12 +2514,12 @@
 					margin: 5,
 					preDrawingHook: DEF_FN,
 					postDrawingHook : DEF_FN,
-					style : { 
+					style : {
 						'text-anchor': 'middle',
 						'font-weight' : 'bold',
 						'font-family': 'sans-serif',
 						'font-size': '11px'
-					}	
+					}
 				},
 				gridLine: {
 					postDrawingHook : DEF_FN,
@@ -2301,7 +2617,7 @@
 				}
 			}
 
-			return descStr; 
+			return descStr;
 		}
 
 		function getHeight (styleDes) {
@@ -2309,7 +2625,7 @@
 				mFactor = 1.2;
 
 			if (typeof styleDes === 'object') {
-				heightStr = styleDes['font-size'] || '12px'; 
+				heightStr = styleDes['font-size'] || '12px';
 			} else {
 				heightStr = styleDes;
 			}
@@ -2320,7 +2636,7 @@
 		return {
 			merge : function (source, sink) {
 				var prop;
-				
+
 				(function rec (source, sink) {
 					var sourceVal;
 
@@ -2342,7 +2658,7 @@
 			},
 
 			getContainer : function (container) {
-				return sel(container);	
+				return sel(container);
 			},
 
 			curry : function (fn) {
@@ -2350,7 +2666,7 @@
 				    p = [];
 
 				return function tfn () {
-					var d, 
+					var d,
 						_p;
 
 					[].push.apply(p, arguments);
@@ -2373,7 +2689,7 @@
 					textMetrics;
 
 				if (typeof textStyle === 'string') {
-					styleDescriptor = textStyle; 
+					styleDescriptor = textStyle;
 				} else {
 					styleDescriptor = getStyleDescriptor(textStyle);
 				}
@@ -2381,7 +2697,7 @@
 				context.font = styleDescriptor;
 				textMetrics = context.measureText(text);
 				textMetrics.height = textMetrics.height || getHeight(textStyle);
-				
+
 				return textMetrics;
 			},
 
@@ -2491,4 +2807,3 @@
 
 	win.GridMap = GridMap;
 })();
-
