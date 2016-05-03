@@ -2484,8 +2484,9 @@
 
 	function GridMap (config, chartData) {
 		var _c,
-			merge = utils.merge,
-			chartConf;
+			chartConf,
+			instanceAPI = this,
+			merge = utils.merge;
 
 		if (arguments.length > 1) {
 			_c = config;
@@ -2497,10 +2498,12 @@
 		merge(stubs.getForGridMap(), chartConf);
 		chartConf.parentContainer = utils.getContainer(chartConf.parentContainer);
 
-		this.chartData = chartData;
+		instanceAPI.chartData = chartData;
 
-		this.svg = undefined;
-		this.extModules = {};
+		instanceAPI.svg = undefined;
+		instanceAPI.extModules = {};
+
+		return instanceAPI;
 	}
 
 	GridMap.prototype.constructor = GridMap;
