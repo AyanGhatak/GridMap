@@ -1378,10 +1378,10 @@
 		 * This creates a clip-path in case the axis needs to be divided in sections.
 		 * @param svgDefsManager {miniSvgDefsManager} - API to create gradient, clip-path etc.
 		 * @param options {Object} - Configuration options required for drawing clip path. This typically contains
-		 *			{
-		 *				ratios: Ratios of break
-		 *				refRect: The reference on which clipping will be applied
-		 *			}
+		 *		{
+		 *			ratios: Ratios of break
+		 *			refRect: The reference on which clipping will be applied
+		 *		}
 		 *
 		 * @return {String} clip-path url
 		 */
@@ -1392,6 +1392,41 @@
 			// Adds the conf which determines how much space to be given before starting the subsequent section.
 			options.tolerance = axisBreak;
 			return svgDefsManager.createClipRect('color-axis-clip', true, options);
+		};
+
+		SeriesColorAxis.prototype.drawAxis = function (measurement, group) {
+			var colorAxisData = this.colorAxisData,
+				axisBreak = colorAxisData.axis.axisBreak,
+				defaultTracketConf = stubs.getForTracker(),
+				merge = utils.merge,
+				conf,
+				stopsConfObj,
+				breakRatios,
+				index,
+				length,
+				width;
+
+
+			// Gets the tracker configuration
+			conf = merge(defaultTracketConf, {});
+
+			GradientColorAxis.prototype.drawAxis.apply(this, arguments);
+
+			stopsConfObj = this.stopsConfObj;
+			breakRatios = stopsConfObj.breakRatios.slice(0);
+
+			width = measurement.width;
+			breakRatios.unshift(0);
+			for (index = 0, length = breakRatios.length; index < length; index++) {
+				group.append('rect').attr({
+					x: breakRatios[index] * width / 100 + axisBreak,
+					y: measurement.y,
+					width: breakRatios[1] * width / 100 - axisBreak,
+					height: measurement.height
+				}).style(conf.style).style({
+					cursor: 'pointer'
+				});
+			}
 		};
 
 		/*
@@ -2100,7 +2135,7 @@
 			thisDataset = dataset[index];
 
 			// Creates a new series object and sets the data
-			series = new Series (thisDataset.name, { style : thisDataset.style });
+			series = new Series(thisDataset.name, { style : thisDataset.style });
 			data = thisDataset.data;
 
 			for (setIndex = 0, setLength = data.length; setIndex < setLength; setIndex++) {
