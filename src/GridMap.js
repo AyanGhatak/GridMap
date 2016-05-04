@@ -187,7 +187,7 @@
 			[].push.apply(allData, datasetData);
 		}
 
-		// Now that it hass all the set data across datasets, extracts the values from this by the key
+		// Now that it has all the set data across datasets, extracts the values from this by the key
 		for (setData of allData) {
 			allValues.push(setData[key]);
 		}
@@ -2391,12 +2391,11 @@
 
 					components[config.key] = config.defaultClass;
 				}
-
-				return;
 			}
-
+			else {
 			// If arguments are passed, registers the specified component
 			components[key] = className;
+		}
 		}
 
 		function dependencyController (depDesc) {
@@ -2665,16 +2664,17 @@
 	};
 
 	GridMap.prototype.render = function () {
-		var config = this.config,
+		var instanceAPI = this,
+			config = instanceAPI.config,
 			parentContainer = config.parentContainer,
-			data = this.chartData,
-			//extModules = this.extModules,
+			data = instanceAPI.chartData,
+			//extModules = instanceAPI.extModules,
 			//moduleKey,
 			//extModule,
 			//chart,
 			svg;
 
-		this.svg = svg = parentContainer.append('svg').attr({
+		instanceAPI.svg = svg = parentContainer.append('svg').attr({
 			height: config.height,
 			width: config.width
 		});
