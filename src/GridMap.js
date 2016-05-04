@@ -527,6 +527,7 @@
 	YAxisModel.prototype.allocateComponentSpace = function (allDimension, measurement, componentStackManager) {
 		var max = Number.NEGATIVE_INFINITY,
 			config = this.config,
+			nameConfig = config.name,
 			meta = this.meta,
 			getTextMetrics = utils.getTextMetrics,
 			stackingKeys = componentStackManager.keys,
@@ -534,6 +535,7 @@
 			index,
 		 	length,
 		 	thisDimension,
+		 	rotateAxisName = nameConfig.rotateValue,
 		 	axisNameMetrics;
 
 		meta.modelSyncDimension = allDimension;
@@ -555,7 +557,7 @@
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
 		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
-		 	totalWidth += axisNameMetrics.width + (config.name.margin || 0);
+		 	totalWidth += (rotateAxisName ? axisNameMetrics.height : axisNameMetrics.width) + (config.name.margin || 0);
 		}
 
 		// Reduces the chart body width, so that this axis component can be drawn.
@@ -721,20 +723,26 @@
 				offsetTranslation: 0
 			},
 			textWidth,
+			rotateAxisName = nameConfig.rotateValue,
 			plotItem;
 
 		// If axis name is present draw it and return the space taken, else return no space taken
 		if (axisName) {
 			textWidth = meta.axisNameMetrics.width;
 
-			plotItem = targetGroup.append('text').attr({
+			plotItem = targetGroup.append('text')
+			.attr(rotateAxisName ? {
+				transform: 'rotate(' + (rotateAxisName ? -90 : 0) + ')',
+				y: measurement.x,
+				x: - (height / 2 - meta.axisNameMetrics.height / 2)
+			} : {
 				x: measurement.x + textWidth / 2,
 				y: height / 2 - meta.axisNameMetrics.height / 2,
 			}).text(preDrawingHook(axisName)).style(config.name.style);
 
 			postDrawingHook(plotItem);
 
-			res.width = textWidth + margin;
+			res.width = margin + (rotateAxisName ? 0 : textWidth);
 			res.offsetTranslation = margin;
 		}
 
@@ -2393,9 +2401,9 @@
 				}
 			}
 			else {
-			// If arguments are passed, registers the specified component
-			components[key] = className;
-		}
+				// If arguments are passed, registers the specified component
+				components[key] = className;
+			}
 		}
 
 		function dependencyController (depDesc) {
