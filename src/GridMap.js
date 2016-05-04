@@ -99,8 +99,12 @@
 	var win = window,
 		doc = win.document,
 		Math = win.Math,
+		sin = Math.sin,
+		cos = Math.cos,
 		ceil = Math.ceil,
 		floor = Math.floor,
+		pi = Math.PI,
+		piBy2 = pi/2,
 		d3 = win.d3,
 		sel = d3.select,
 		hasOwnProp = ({}).hasOwnProperty,
@@ -2731,7 +2735,8 @@
 						'font-weight' : 'bold',
 						'font-family': 'sans-serif',
 						'font-size': '11px'
-					}
+					},
+					rotateValue: 1
 				},
 				gridLine: {
 					postDrawingHook : DEF_FN,
@@ -3047,6 +3052,23 @@
 
 				exitSelection
 					.remove();
+			},
+
+			/*
+			 * Converts an angle from degree to radians.
+			 * @param deg: The input angle in degree to be converted.
+			 * @return Number - Angle in radians.
+			*/
+			toRadian: function (deg) {
+				return deg * pi/180;
+			},
+			/*
+			 * Converts an angle from radians to degree.
+			 * @param rad: The input angle in radians to be converted.
+			 * @return Number - Angle in degrees.
+			*/
+			toDegree: function(rad) {
+				return rad * 180/pi;
 			}
 		};
 	})();
