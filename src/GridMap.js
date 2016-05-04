@@ -2586,7 +2586,8 @@
 						'font-weight' : 'bold',
 						'font-family': 'sans-serif',
 						'font-size': '11px'
-					}
+					},
+					rotateValue: 1
 				},
 				gridLine: {
 					postDrawingHook : DEF_FN,
