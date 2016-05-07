@@ -112,7 +112,8 @@
 		stubs,
 		utils,
 		gridManager,
-		colorAxisManager;
+		colorAxisManager,
+		interactionManager;
 
 
 	/*
@@ -785,8 +786,14 @@
 			this.stopsConfObj = undefined;
 			this.graphics = {
 				node: undefined,
-				group: undefined
+				group: undefined,
+				trackers: []
 			};
+
+			// By default intearction is disabled. If a particular axis has interaction, it should  draw all the 
+			// interaction layers and turn this flag to true. If this flag is true, axis calls setUpInteraction function
+			// of derived class with interactionManager
+			//this.enableInteraction = false;
 
 			// This is key is for the modules which needs ColorAxi to color their component. Lets say the dataset needs
 			// to color the rectangle based on a value. The color will be calculated based on this value from a linear
@@ -898,7 +905,8 @@
 				'effectiveBodyMeasurement',
 				'componentStackManager',
 				'globalTranslate',
-				function (graphics, effBodyMes, componentStackManager, globalTranslate) {
+				'interactionManager',
+				function (graphics, effBodyMes, componentStackManager, globalTranslate, interactionManager) {
 					var effBodyWidth = effBodyMes.width,
 						gridMain = graphics.gridMain,
 						stackingKeys = componentStackManager.keys,
@@ -931,9 +939,14 @@
 					};
 
 					// Draws the main rectangular area of the color axis
-					this.drawAxis(measurement, axisGroup, defManager);
+					this.drawAxis(measurement, axisGroup, defManager, interactionManager);
 					// Calls for specifics drawibg like marker label etc
 					postPlotRes = this.postAxisPlotDrawing(measurement, this.stopsConfObj);
+
+					// Check if interaction is required, if yes call setUpInteraction function
+					// if (this.enableInteraction) {
+					// 	this.setUpInteraction(interactionManager);
+					// }
 
 					// If any translation is suggested by the postAxisPlotDrawing, apply that
 					offsetTranslation = (postPlotRes || {}).offsetTranslation || 0;
@@ -1394,31 +1407,53 @@
 			return svgDefsManager.createClipRect('color-axis-clip', true, options);
 		};
 
-		SeriesColorAxis.prototype.drawAxis = function (measurement, group) {
-			var colorAxisData = this.colorAxisData,
+		SeriesColorAxis.prototype.clickHandler = function (interactionManager) {
+			this.clickHandler = function (seriesName) {
+				var actionKeys = interactionManager.getActionIDs();
+
+				interactionManager.perform(actionKeys.DELETE_BY_SID, [seriesName]);
+			};
+		};
+
+		SeriesColorAxis.prototype.drawAxis = function (measurement, group, svgDefsManager, interactionManager) {
+			var self = this,
+				colorAxisData = self.colorAxisData,
+				trackers = self.graphics.trackers,
+				labelModel = self.labelModel,
 				axisBreak = colorAxisData.axis.axisBreak,
 				defaultTracketConf = stubs.getForTracker(),
+				SERIES_ID_KEY = 'sId',
 				merge = utils.merge,
 				conf,
 				stopsConfObj,
 				breakRatios,
 				index,
 				length,
-				width;
+				width,
+				tracker,
+				trackerData;
+
+			self.clickHandler(interactionManager);
+
+			function intermediateClickHandler (data) {
+				self.clickHandler.call(self, data[SERIES_ID_KEY]);
+			}
 
 
 			// Gets the tracker configuration
 			conf = merge(defaultTracketConf, {});
 
-			GradientColorAxis.prototype.drawAxis.apply(this, arguments);
+			GradientColorAxis.prototype.drawAxis.apply(self, arguments);
 
-			stopsConfObj = this.stopsConfObj;
+			stopsConfObj = self.stopsConfObj;
 			breakRatios = stopsConfObj.breakRatios.slice(0);
 
 			width = measurement.width;
 			breakRatios.unshift(0);
 			for (index = 0, length = breakRatios.length; index < length; index++) {
-				group.append('rect').attr({
+				trackerData = {};
+
+				tracker = group.append('rect').attr({
 					x: breakRatios[index] * width / 100 + axisBreak,
 					y: measurement.y,
 					width: breakRatios[1] * width / 100 - axisBreak,
@@ -1426,6 +1461,13 @@
 				}).style(conf.style).style({
 					cursor: 'pointer'
 				});
+
+				trackerData[SERIES_ID_KEY] = labelModel[index];
+				tracker.data([trackerData]);
+
+				tracker.on('click', intermediateClickHandler);			
+
+				trackers[index] = tracker;
 			}
 		};
 
@@ -1536,6 +1578,38 @@
 				}
 
 				return axisInstance;
+			}
+		};
+	})();
+
+	interactionManager = (function () {
+		var dmMatrix,
+			seriesArr,
+			actionIDs = {},
+			actions = {};
+
+		Object.defineProperties(actionIDs, {
+			DELETE_BY_SID: { value: 'deleteBySeriesId', enumerable: true, configurable: false, writable: false }	
+		});
+
+		actions[actionIDs.DELETE_BY_SID] = function (seriesId) {
+			console.log('action', seriesId);
+		};
+
+		return {
+			init: function (dataModelMatrix, allSeries) {
+				dmMatrix = dataModelMatrix;
+				seriesArr = allSeries;
+			},
+
+			getActionIDs: function () {
+				return actionIDs;
+			},
+
+			perform: function (actionID, actionParamArr) {
+				var actionFn = actions[actionID];
+
+				actionFn && actionFn.apply(this, actionParamArr);
 			}
 		};
 	})();
@@ -1734,14 +1808,13 @@
 	 * Adds dataset graphics elements to be drawn on grid.
 	 *
 	 * @param index {Integer} - series index. This extracts data, functions from the required ds to plot.
-	 * @params element {SVGGraphicsElement} - the dataset rect plotted
 	 * @param autoTrackerParam {Array} - Automatic tracker drawing function. Generally in the form of [i, j, fn]
 	 */
-	DataGraphicsHandler.prototype.addDSGraphicsElement = function (index, element, autoTrackerParam) {
+	DataGraphicsHandler.prototype.addDSGraphicsElement = function (index, autoTrackerParam) {
 		var fn,
 			param;
 
-		this.dsGraphics[index] = element;
+		//this.dsGraphics[index] = element;
 
 		if (!autoTrackerParam) {
 			return;
@@ -1938,13 +2011,13 @@
 		 * @param: updateMatrix {DataModelMatrix._updateMatrix} - The update matrix based on what the plots are drawn
 		 */
 		this.draw = function (updateMatrix) {
-			var dataSeries,
+			var d3Data = [],
+				dataSeries,
 				lastSeries,
 				updateArr,
 				index,
 				i,
 				j,
-				elem,
 				seriesIndex,
 				dataGraphicsHandler,
 				colorDomainVal,
@@ -1990,21 +2063,28 @@
 				// Get the value  of the key which will be used to retrieve the color from the color axis
 				colorDomainVal = getValueByKeyChain(seriesData, colorAxis.key);
 
-				// Draws the color filled rectangle on the grid.
-				elem = group.append('rect')
-					.attr({
-						y: i *  yBlockSize,
-						x: j * xBlockSize,
-						height: yBlockSize,
-						width: xBlockSize
-					})
-					.style(lastSeries.conf.style)
-					.style({ 'fill' : colorAxis.getColorByDomain(colorDomainVal) });
+				d3Data.push({
+					i: i,
+					j: j,
+					lastSeries: lastSeries,
+					colorDomainVal: colorDomainVal
+				});
 
 				// Adds this information to dataGraphicsHandler, so that if any component drawing is dependent on this,
 				// can be drawn easily, like the default tracker
-				dataGraphicsHandler.addDSGraphicsElement(seriesIndex, elem, [i, j,curry(preCurriedFn)]);
+				dataGraphicsHandler.addDSGraphicsElement(seriesIndex, [i, j,curry(preCurriedFn)]);
 			}
+
+			group.selectAll('rect').data(d3Data).enter().append('rect')
+				.attr('x', function (d) { return d.j * xBlockSize; })
+				.attr('y', function (d) { return d.i * yBlockSize; })
+				.attr('height', yBlockSize)
+				.attr('width', xBlockSize)
+				.style('opacity', 0)
+				.transition()
+				.style(function (d) { return d.lastSeries.conf.style; })
+				.style('fill', function (d) { return colorAxis.getColorByDomain(d.colorDomainVal); })
+				.style('opacity', 1);
 		};
 	};
 
@@ -2108,6 +2188,7 @@
 			y = this.y,
 			yKey = y.getDataKey(),
 			xKey = x.getDataKey(),
+			allSeries = [],
 			thisDataset,
 			data,
 			index,
@@ -2135,7 +2216,7 @@
 			thisDataset = dataset[index];
 
 			// Creates a new series object and sets the data
-			series = new Series(thisDataset.name, { style : thisDataset.style });
+			allSeries.push(series = new Series(thisDataset.name, { style : thisDataset.style }));
 			data = thisDataset.data;
 
 			for (setIndex = 0, setLength = data.length; setIndex < setLength; setIndex++) {
@@ -2153,6 +2234,8 @@
 
 		// Once preparation is done, raises the end event
 		dataModelMatrix.fireEvent('end');
+
+		return allSeries;
 	};
 
 
@@ -2410,8 +2493,10 @@
 					gridMain,
 					bodyMetrics,
 					stackedItem,
-					axes;
+					axes,
+					allSeries;
 
+				diParams.interactionManager = interactionManager;
 				axes = diParams.axes;
 				axes.x = x = new X(data.axis.x, data);
 				axes.y = y = new Y(data.axis.y, data);
@@ -2477,7 +2562,9 @@
 				new DatasetRenderer (dependencyController);
 				new TrackerModel(dependencyController);
 
-				dsParser.parse();
+				allSeries = dsParser.parse();
+
+				interactionManager.init(diParams.dataModelMatrix, allSeries);
 			}
 		};
 	})();
