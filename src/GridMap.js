@@ -539,7 +539,7 @@
 			index,
 		 	length,
 		 	thisDimension,
-		 	rotateAxisName = nameConfig.rotateValue,
+		 	rotateAxisNameAngle = utils.toRadian(nameConfig.rotate),
 		 	axisNameMetrics;
 
 		meta.modelSyncDimension = allDimension;
@@ -561,7 +561,7 @@
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
 		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
-		 	totalWidth += (rotateAxisName ? axisNameMetrics.height : axisNameMetrics.width) + (config.name.margin || 0);
+		 	totalWidth += ((axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height * sin(rotateAxisNameAngle))) + (config.name.margin || 0);
 		}
 
 		// Reduces the chart body width, so that this axis component can be drawn.
@@ -714,7 +714,9 @@
 	 * suggested. If not drawn it return 0 as value of the keys.
 	 */
 	YAxisModel.prototype.drawAxisName = function (targetGroup, measurement) {
-		var config = this.config,
+		var widthComponent,
+			heightComponent,
+			config = this.config,
 			axisName = this.axisName,
 			meta = this.meta,
 			nameConfig = config.name,
@@ -727,26 +729,27 @@
 				offsetTranslation: 0
 			},
 			textWidth,
-			rotateAxisName = nameConfig.rotateValue,
-			plotItem;
+			rotateValue = nameConfig.rotate,
+			rotateAxisNameAngle = utils.toRadian(rotateValue),
+			plotItem,
+			axisNameMetrics = meta.axisNameMetrics;
 
 		// If axis name is present draw it and return the space taken, else return no space taken
 		if (axisName) {
-			textWidth = meta.axisNameMetrics.width;
-
+			textWidth = (axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height * sin(rotateAxisNameAngle));
+			widthComponent = textWidth / 2 + measurement.x;
+			heightComponent = axisNameMetrics.height / 2 - height / 2;
 			plotItem = targetGroup.append('text')
-			.attr(rotateAxisName ? {
-				transform: 'rotate(' + (rotateAxisName ? -90 : 0) + ')',
-				y: measurement.x,
-				x: - (height / 2 - meta.axisNameMetrics.height / 2)
-			} : {
-				x: measurement.x + textWidth / 2,
-				y: height / 2 - meta.axisNameMetrics.height / 2,
-			}).text(preDrawingHook(axisName)).style(config.name.style);
+			.attr({
+				transform: 'rotate(' + (-rotateValue) + ')',
+				y: (widthComponent * sin(rotateAxisNameAngle)) - (heightComponent * cos(rotateAxisNameAngle)),
+				x: (widthComponent * cos(rotateAxisNameAngle)) + (heightComponent * sin(rotateAxisNameAngle))
+			})
+			.text(preDrawingHook(axisName)).style(config.name.style);
 
 			postDrawingHook(plotItem);
 
-			res.width = margin + (rotateAxisName ? 0 : textWidth);
+			res.width = margin + textWidth;
 			res.offsetTranslation = margin;
 		}
 
@@ -2736,8 +2739,8 @@
 						'font-family': 'sans-serif',
 						'font-size': '11px'
 					},
-					rotateValue: 1
-				},
+					rotate: 90 // default value for rotation of the y-axis
+				}, 
 				gridLine: {
 					postDrawingHook : DEF_FN,
 					style : {
