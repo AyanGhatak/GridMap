@@ -741,6 +741,52 @@
 		return res;
 	};
 
+	function Series (name, conf) {
+		this.name = name;
+		this.conf = conf;
+		this.data = {};
+		this.cells = [];
+
+		Series.instances.push(this);
+	}
+
+	Series.prototype.constructor = Series;
+	Series.instances = [];
+
+	Series.getSeriesById = function (id) {
+		var instances = Series.instances,
+			instance;
+
+		for (instance of instances) {
+			if (instance.name === id) {
+				return instance;
+			}
+		}
+	};
+
+	Series.prototype.addData = function (i, j, data) {
+		var iData = this.data,
+			cells = this.cells,
+			jData;
+
+		 jData = iData[i] || (iData[i] = {});
+		 jData[j] = data;
+
+		 cells.push([i, j]);
+
+		return iData;
+	};
+
+	Series.prototype.getSeriesData = function (i, j) {
+		var dataArr = this.data,
+			data = dataArr[i][j];
+
+		return {
+			name: this.name,
+			data: data
+		};
+	};
+
 	/*
 	 * Manages the init of a ColorAxis class from the configiuration. This contains the definition of the ColorAxis
 	 * classes and initialize the class based on the configuration. Currently the supported conf are
@@ -1584,7 +1630,6 @@
 
 	interactionManager = (function () {
 		var dmMatrix,
-			seriesArr,
 			actionIDs = {},
 			actions = {};
 
@@ -1593,13 +1638,13 @@
 		});
 
 		actions[actionIDs.DELETE_BY_SID] = function (seriesId) {
-			console.log('action', seriesId);
+			var seriesInstance = Series.getSeriesById(seriesId);
+			dmMatrix.unset(seriesInstance);
 		};
 
 		return {
-			init: function (dataModelMatrix, allSeries) {
-				dmMatrix = dataModelMatrix;
-				seriesArr = allSeries;
+			init: function (dataModelMatrix) {
+				dmMatrix = dataModelMatrix;	
 			},
 
 			getActionIDs: function () {
@@ -1720,13 +1765,13 @@
 	 */
 	DataModelMatrix.prototype.set = function () {
 		var matrix = this._matrix,
+			eSet = this.eventMap.set,
+			updateM = this._updateMatrix,
 			i,
 			j,
 			fn,
 			prevVal,
-			val,
-			eSet = this.eventMap.set,
-			updateM = this._updateMatrix;
+			val;
 
 		i = arguments[0];
 		if (arguments.length === 2) {
@@ -1777,6 +1822,26 @@
 		}
 	};
 
+	DataModelMatrix.prototype.unset = function (series) {
+		var updateM = this._updateMatrix,
+			cells = series.cells,
+			cell,
+			dgHandler,
+			i,
+			j;
+
+		for (cell of cells) {
+			i = cell[0];
+			j = cell[1];
+
+			console.log(i, j);
+			dgHandler = updateM[i.toString() + j][2];
+			dgHandler.removeSeries(series);
+		}
+
+		this.fireEvent('end');
+	};
+
 	/*
 	 * Manages the graphics element drawing in relation to the dataset drawing and datamodel matrix. Like where ever
 	 * the dataplots are tracker needs to be placed. These all are managed by this.
@@ -1802,6 +1867,24 @@
 	 */
 	DataGraphicsHandler.prototype.addSeries = function (series) {
 		this.series.push(series);
+	};
+
+	DataGraphicsHandler.prototype.removeSeries = function (seriesInstance) {
+		var allSeries = this.series,
+			seriesIndex,
+			index,
+			length;
+		
+		for (index = 0, length = allSeries.length; index < length; index++) {
+			if (allSeries[index] === seriesInstance) {
+				seriesIndex = index;
+				break;
+			}
+		}
+
+		if (seriesIndex !== undefined) {
+			allSeries.splice(seriesIndex, 1);
+		}
 	};
 
 	/*
@@ -1939,7 +2022,7 @@
 							x: j * xBlockSize,
 							height: yBlockSize,
 							width: xBlockSize
-						}).style(this.config.style);
+						}).style(self.config.style);
 					}
 				}
 			}
@@ -1998,6 +2081,8 @@
 			colorAxis = options.colorAxis,
 			curry = utils.curry,
 			getValueByKeyChain = utils.getValueByKeyChain,
+			merge = utils.merge,
+			dataGraphicsJoiner = utils.dataGraphicsJoiner,
 			group;
 
 		// Creates a new group which will be parents of all the color rects (dataset plots).
@@ -2022,7 +2107,8 @@
 				dataGraphicsHandler,
 				colorDomainVal,
 				seriesData,
-				preCurriedFn;
+				preCurriedFn,
+				style;
 
 			// preCurriedFn is not our regular function. Its not assured that the function will get all the parameters 
 			// at once. Hence this is curried later on.
@@ -2063,11 +2149,15 @@
 				// Get the value  of the key which will be used to retrieve the color from the color axis
 				colorDomainVal = getValueByKeyChain(seriesData, colorAxis.key);
 
+				style = merge(lastSeries.conf.style, {});
+				style.fill = colorAxis.getColorByDomain(colorDomainVal);
+
 				d3Data.push({
-					i: i,
-					j: j,
-					lastSeries: lastSeries,
-					colorDomainVal: colorDomainVal
+					x: j * xBlockSize,
+					y: i * yBlockSize,
+					height: yBlockSize,
+					width: xBlockSize,
+					style: style
 				});
 
 				// Adds this information to dataGraphicsHandler, so that if any component drawing is dependent on this,
@@ -2075,44 +2165,9 @@
 				dataGraphicsHandler.addDSGraphicsElement(seriesIndex, [i, j,curry(preCurriedFn)]);
 			}
 
-			group.selectAll('rect').data(d3Data).enter().append('rect')
-				.attr('x', function (d) { return d.j * xBlockSize; })
-				.attr('y', function (d) { return d.i * yBlockSize; })
-				.attr('height', yBlockSize)
-				.attr('width', xBlockSize)
-				.style('opacity', 0)
-				.transition()
-				.style(function (d) { return d.lastSeries.conf.style; })
-				.style('fill', function (d) { return colorAxis.getColorByDomain(d.colorDomainVal); })
-				.style('opacity', 1);
-		};
-	};
-
-	function Series (name, conf) {
-		this.name = name;
-		this.conf = conf;
-		this.data = [];
-	}
-
-	Series.prototype.constructor = Series;
-
-	Series.prototype.addData = function (i, j, data) {
-		var iData = this.data,
-			jData;
-
-		 jData = iData[i] || (iData[i] = []);
-		 jData[j] = data;
-
-		return iData;
-	};
-
-	Series.prototype.getSeriesData = function (i, j) {
-		var dataArr = this.data,
-			data = dataArr[i][j];
-
-		return {
-			name: this.name,
-			data: data
+			dataGraphicsJoiner(group, {
+				append: 'rect'	
+			}, d3Data);
 		};
 	};
 
@@ -2493,10 +2548,11 @@
 					gridMain,
 					bodyMetrics,
 					stackedItem,
-					axes,
-					allSeries;
+					axes;
 
 				diParams.interactionManager = interactionManager;
+				interactionManager.init(diParams.dataModelMatrix);
+
 				axes = diParams.axes;
 				axes.x = x = new X(data.axis.x, data);
 				axes.y = y = new Y(data.axis.y, data);
@@ -2562,9 +2618,7 @@
 				new DatasetRenderer (dependencyController);
 				new TrackerModel(dependencyController);
 
-				allSeries = dsParser.parse();
-
-				interactionManager.init(diParams.dataModelMatrix, allSeries);
+				dsParser.parse();
 			}
 		};
 	})();
@@ -2944,6 +2998,40 @@
 				}
 
 				return _o;
+			},
+
+			dataGraphicsJoiner: function (group, selectors, data) {
+				var joinedResult,
+					exitSelection,
+					enterSelection,
+					key;
+
+				function applyProps (d) {
+					var elem = d3.select(this);
+
+					for (key in d) { 
+						if (key === 'style') {
+							elem.style(d[key]);
+						} else {
+							elem.attr(key, d[key]);
+						}
+					}
+				}
+
+				selectors.selectAll === undefined && (selectors.selectAll = selectors.append);
+
+				joinedResult = group.selectAll(selectors.selectAll).data(data);
+				enterSelection = joinedResult.enter().append(selectors.append);
+				exitSelection = joinedResult.exit();
+
+				joinedResult
+					.each(applyProps)
+					.style('opacity', 0)
+					.transition()
+					.style('opacity', 1);
+
+				exitSelection
+					.remove();
 			}
 		};
 	})();
