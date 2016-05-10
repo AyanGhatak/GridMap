@@ -1834,7 +1834,6 @@
 			i = cell[0];
 			j = cell[1];
 
-			console.log(i, j);
 			dgHandler = updateM[i.toString() + j][2];
 			dgHandler.removeSeries(series);
 		}
@@ -2002,8 +2001,13 @@
 				j;
 
 			_trackerFn = function (trackerFn) {
-				return trackerFn(group).style(self.config.style);
+				var _t = trackerFn(group);
+				if (!(_t instanceof Function)) {
+					return _t && _t.style(self.config.style);
+				}
 			};
+
+			group.selectAll('rect').remove();
 
 			for (i = 0; i < li; i++) {
 				// Iterates through all the columns
@@ -2162,7 +2166,7 @@
 
 				// Adds this information to dataGraphicsHandler, so that if any component drawing is dependent on this,
 				// can be drawn easily, like the default tracker
-				dataGraphicsHandler.addDSGraphicsElement(seriesIndex, [i, j,curry(preCurriedFn)]);
+				dataGraphicsHandler.addDSGraphicsElement(seriesIndex, [i, j, curry(preCurriedFn)]);
 			}
 
 			dataGraphicsJoiner(group, {
