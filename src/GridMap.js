@@ -99,8 +99,12 @@
 	var win = window,
 		doc = win.document,
 		Math = win.Math,
+		sin = Math.sin,
+		cos = Math.cos,
 		ceil = Math.ceil,
 		floor = Math.floor,
+		pi = Math.PI,
+		piBy2 = pi/2,
 		d3 = win.d3,
 		sel = d3.select,
 		hasOwnProp = ({}).hasOwnProperty,
@@ -187,7 +191,7 @@
 			[].push.apply(allData, datasetData);
 		}
 
-		// Now that it hass all the set data across datasets, extracts the values from this by the key
+		// Now that it has all the set data across datasets, extracts the values from this by the key
 		for (setData of allData) {
 			allValues.push(setData[key]);
 		}
@@ -527,6 +531,7 @@
 	YAxisModel.prototype.allocateComponentSpace = function (allDimension, measurement, componentStackManager) {
 		var max = Number.NEGATIVE_INFINITY,
 			config = this.config,
+			nameConfig = config.name,
 			meta = this.meta,
 			getTextMetrics = utils.getTextMetrics,
 			stackingKeys = componentStackManager.keys,
@@ -534,6 +539,7 @@
 			index,
 		 	length,
 		 	thisDimension,
+		 	rotateAxisNameAngle = utils.toRadian(nameConfig.rotate),
 		 	axisNameMetrics;
 
 		meta.modelSyncDimension = allDimension;
@@ -555,7 +561,7 @@
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
 		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
-		 	totalWidth += axisNameMetrics.width + (config.name.margin || 0);
+		 	totalWidth += ((axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height * sin(rotateAxisNameAngle))) + (config.name.margin || 0);
 		}
 
 		// Reduces the chart body width, so that this axis component can be drawn.
@@ -708,7 +714,9 @@
 	 * suggested. If not drawn it return 0 as value of the keys.
 	 */
 	YAxisModel.prototype.drawAxisName = function (targetGroup, measurement) {
-		var config = this.config,
+		var widthComponent,
+			heightComponent,
+			config = this.config,
 			axisName = this.axisName,
 			meta = this.meta,
 			nameConfig = config.name,
@@ -721,20 +729,27 @@
 				offsetTranslation: 0
 			},
 			textWidth,
-			plotItem;
+			rotateValue = nameConfig.rotate,
+			rotateAxisNameAngle = utils.toRadian(rotateValue),
+			plotItem,
+			axisNameMetrics = meta.axisNameMetrics;
 
 		// If axis name is present draw it and return the space taken, else return no space taken
 		if (axisName) {
-			textWidth = meta.axisNameMetrics.width;
-
-			plotItem = targetGroup.append('text').attr({
-				x: measurement.x + textWidth / 2,
-				y: height / 2 - meta.axisNameMetrics.height / 2,
-			}).text(preDrawingHook(axisName)).style(config.name.style);
+			textWidth = (axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height * sin(rotateAxisNameAngle));
+			widthComponent = textWidth / 2 + measurement.x;
+			heightComponent = axisNameMetrics.height / 2 - height / 2;
+			plotItem = targetGroup.append('text')
+			.attr({
+				transform: 'rotate(' + (-rotateValue) + ')',
+				y: (widthComponent * sin(rotateAxisNameAngle)) - (heightComponent * cos(rotateAxisNameAngle)),
+				x: (widthComponent * cos(rotateAxisNameAngle)) + (heightComponent * sin(rotateAxisNameAngle))
+			})
+			.text(preDrawingHook(axisName)).style(config.name.style);
 
 			postDrawingHook(plotItem);
 
-			res.width = textWidth + margin;
+			res.width = margin + textWidth;
 			res.offsetTranslation = margin;
 		}
 
@@ -2391,12 +2406,11 @@
 
 					components[config.key] = config.defaultClass;
 				}
-
-				return;
 			}
-
-			// If arguments are passed, registers the specified component
-			components[key] = className;
+			else {
+				// If arguments are passed, registers the specified component
+				components[key] = className;
+			}
 		}
 
 		function dependencyController (depDesc) {
@@ -2629,8 +2643,9 @@
 
 	function GridMap (config, chartData) {
 		var _c,
-			merge = utils.merge,
-			chartConf;
+			chartConf,
+			instanceAPI = this,
+			merge = utils.merge;
 
 		if (arguments.length > 1) {
 			_c = config;
@@ -2642,10 +2657,12 @@
 		merge(stubs.getForGridMap(), chartConf);
 		chartConf.parentContainer = utils.getContainer(chartConf.parentContainer);
 
-		this.chartData = chartData;
+		instanceAPI.chartData = chartData;
 
-		this.svg = undefined;
-		this.extModules = {};
+		instanceAPI.svg = undefined;
+		instanceAPI.extModules = {};
+
+		return instanceAPI;
 	}
 
 	GridMap.prototype.constructor = GridMap;
@@ -2662,16 +2679,17 @@
 	};
 
 	GridMap.prototype.render = function () {
-		var config = this.config,
+		var instanceAPI = this,
+			config = instanceAPI.config,
 			parentContainer = config.parentContainer,
-			data = this.chartData,
-			//extModules = this.extModules,
+			data = instanceAPI.chartData,
+			//extModules = instanceAPI.extModules,
 			//moduleKey,
 			//extModule,
 			//chart,
 			svg;
 
-		this.svg = svg = parentContainer.append('svg').attr({
+		instanceAPI.svg = svg = parentContainer.append('svg').attr({
 			height: config.height,
 			width: config.width
 		});
@@ -2720,8 +2738,9 @@
 						'font-weight' : 'bold',
 						'font-family': 'sans-serif',
 						'font-size': '11px'
-					}
-				},
+					},
+					rotate: 90 // default value for rotation of the y-axis
+				}, 
 				gridLine: {
 					postDrawingHook : DEF_FN,
 					style : {
@@ -3036,6 +3055,23 @@
 
 				exitSelection
 					.remove();
+			},
+
+			/*
+			 * Converts an angle from degree to radians.
+			 * @param deg: The input angle in degree to be converted.
+			 * @return Number - Angle in radians.
+			*/
+			toRadian: function (deg) {
+				return deg * pi/180;
+			},
+			/*
+			 * Converts an angle from radians to degree.
+			 * @param rad: The input angle in radians to be converted.
+			 * @return Number - Angle in degrees.
+			*/
+			toDegree: function(rad) {
+				return rad * 180/pi;
 			}
 		};
 	})();
