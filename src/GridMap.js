@@ -104,7 +104,6 @@
 		ceil = Math.ceil,
 		floor = Math.floor,
 		pi = Math.PI,
-		piBy2 = pi/2,
 		d3 = win.d3,
 		sel = d3.select,
 		hasOwnProp = ({}).hasOwnProperty,
@@ -561,7 +560,8 @@
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
 		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
-		 	totalWidth += ((axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height * sin(rotateAxisNameAngle))) + (config.name.margin || 0);
+		 	totalWidth += ((axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height *
+		 		sin(rotateAxisNameAngle))) + (config.name.margin || 0);
 		}
 
 		// Reduces the chart body width, so that this axis component can be drawn.
@@ -736,7 +736,8 @@
 
 		// If axis name is present draw it and return the space taken, else return no space taken
 		if (axisName) {
-			textWidth = (axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height * sin(rotateAxisNameAngle));
+			textWidth = (axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height *
+				sin(rotateAxisNameAngle));
 			widthComponent = textWidth / 2 + measurement.x;
 			heightComponent = axisNameMetrics.height / 2 - height / 2;
 			plotItem = targetGroup.append('text')
