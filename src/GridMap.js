@@ -2133,6 +2133,11 @@
 			// preCurriedFn is not our regular function. Its not assured that the function will get all the parameters 
 			// at once. Hence this is curried later on.
 			preCurriedFn = function (i, j, g) {
+				i = parseInt(i, 10);
+				j = parseInt(j, 10);
+
+				if (isNaN(i) || isNaN(j)) { return; }
+
 				return g.append('rect').attr({
 					y: i *  yBlockSize,
 					x: j * xBlockSize,
