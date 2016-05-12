@@ -134,7 +134,8 @@
 	 * @constructor
 	 */
 	function AxisModel (options, data) {
-		var defaultAxisData = stubs.getForAxis(),
+		var nameConfig,
+			defaultAxisData = stubs.getForAxis(),
 			merge = utils.merge;
 
 		this.config = {};
@@ -152,11 +153,16 @@
 		this.gridLines = [];
 		// The key, value of which would be pushed in axis model
 		this.dataKey = undefined;
+		nameConfig = this.config.name;
 		// Axis name gives context on the axis itself by mentationing what the axis means
-		this.axisName = this.config.name.text;
+		this.axisName = nameConfig.text;
+		// Pre-hooks the axisName and stores it in the instance for future reference.
+		this.preHookedAxisName = nameConfig.preDrawingHook(this.axisName);
 
 		// Prepares the model from the data
 		this.model = this.getNormalizedModel(data);
+		//Applies the preHook to the normalised model. Save it in the instance.
+		this.preHookedModel = this.preHookModel();
 	}
 
 	AxisModel.prototype.constructor = AxisModel;
@@ -261,8 +267,7 @@
 	AxisModel.prototype.updatePreDrawingSpace = function (controller) {
 		var getTextMetrics = utils.getTextMetrics,
 			labelConfig = this.config.label,
-			labelStyle = labelConfig.style,
-			labelPreDrawingHook = labelConfig.preDrawingHook;
+			labelStyle = labelConfig.style;
 
 		// Aks for the the dependenies that are needed to calculate the component space.
 		// Details of all the dependencies which can be invoked is listed at top.
@@ -270,18 +275,19 @@
 			'effectiveBodyMeasurement',
 			'componentStackManager',
 			function (measurement, componentStackManager) {
-				var model = this.model,
+				var axisModel = this,
+					preHookedModel = axisModel.getPreHookedModel(),
 					index = 0,
-					length = model.length,
+					length = preHookedModel.length,
 					allDimension = [];
 
 				for (; index < length; index++) {
 					// Gets all the model texts which will be plotted.
-					allDimension.push(getTextMetrics(labelPreDrawingHook(model[index]), labelStyle));
+					allDimension.push(getTextMetrics(preHookedModel[index], labelStyle));
 				}
 
 				// Relegates the call to the child derived class, so that it manages it's own parts
-				this.allocateComponentSpace(allDimension, measurement, componentStackManager);
+				axisModel.allocateComponentSpace(allDimension, measurement, componentStackManager);
 			}.bind(this)
 		]);
 	};
