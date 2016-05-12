@@ -594,7 +594,7 @@
 
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
-		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
+		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.preHookedAxisName, config.name.style);
 		 	totalWidth += ((axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height *
 		 		sin(rotateAxisNameAngle))) + (config.name.margin || 0);
 		}
@@ -705,7 +705,11 @@
 	 * suggested
 	 */
 	YAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
-		var model = this.model,
+		var model = this.getModel(),
+			preHookedModel = this.getPreHookedModel(),
+			textFN = function () {
+				return preHookedModel[arguments[1]];
+			},
 			config = this.config,
 			meta = this.meta,
 			labelConfig = config.label,
@@ -713,7 +717,6 @@
 			margin = labelConfig.margin || 0,
 			modelSize = model.length,
 			blockSize = measurement.height / modelSize,
-			preDrawingHook = labelConfig.preDrawingHook,
 			postDrawingHook = labelConfig.postDrawingHook,
 			modelSyncDimension = meta.modelSyncDimension,
 			labelGroup,
@@ -729,7 +732,7 @@
 			dy: '-0.25em',
 			x: x + meta.maxLabelWidth / 2,
 			y : function (d, i) { return (i *  blockSize) + (blockSize / 2) + modelSyncDimension[i].height / 2; }
-		}).text(preDrawingHook).style(labelConfig.style);
+		}).text(textFN).style(labelConfig.style);
 
 		// Once all text are plotted in DOM, call the hook callback by passing all the SVGElements
 		postDrawingHook(allText);
@@ -755,7 +758,6 @@
 			axisName = this.axisName,
 			meta = this.meta,
 			nameConfig = config.name,
-			preDrawingHook = nameConfig.preDrawingHook,
 			postDrawingHook = nameConfig.postDrawingHook,
 			margin = nameConfig.margin || 0,
 			height = measurement.height,
@@ -781,7 +783,7 @@
 				y: (widthComponent * sin(rotateAxisNameAngle)) - (heightComponent * cos(rotateAxisNameAngle)),
 				x: (widthComponent * cos(rotateAxisNameAngle)) + (heightComponent * sin(rotateAxisNameAngle))
 			})
-			.text(preDrawingHook(axisName)).style(config.name.style);
+			.text(this.preHookedAxisName).style(config.name.style);
 
 			postDrawingHook(plotItem);
 
