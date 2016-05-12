@@ -235,7 +235,9 @@
 	 */
 	AxisModel.prototype.updatePreDrawingSpace = function (controller) {
 		var getTextMetrics = utils.getTextMetrics,
-			labelStyle = this.config.label.style;
+			labelConfig = this.config.label,
+			labelStyle = labelConfig.style,
+			labelPreDrawingHook = labelConfig.preDrawingHook;
 
 		// Aks for the the dependenies that are needed to calculate the component space.
 		// Details of all the dependencies which can be invoked is listed at top.
@@ -250,7 +252,7 @@
 
 				for (; index < length; index++) {
 					// Gets all the model texts which will be plotted.
-					allDimension.push(getTextMetrics(model[index], labelStyle));
+					allDimension.push(getTextMetrics(labelPreDrawingHook(model[index]), labelStyle));
 				}
 
 				// Relegates the call to the child derived class, so that it manages it's own parts
