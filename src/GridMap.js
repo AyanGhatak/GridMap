@@ -205,6 +205,31 @@
 	};
 
 	/*
+	 * Applies prehooks to the data model.
+	 * Which would be useful in space management and drawing implementations.
+	 * Saving this seperately would help not to diturb the sanity of the axis model.
+	 *
+	 * @return {Array} - Array of values after applying the prehook.
+	*/
+	AxisModel.prototype.preHookModel = function () {
+		var axisModel = this,
+			model = axisModel.model,
+			labelConfig = axisModel.config.label,
+			preDrawingHook = labelConfig.preDrawingHook;
+
+		return model.map(preDrawingHook);
+	};
+
+	/*
+	 * Retrieves the preHooked model, once created.
+	 *
+	 * @return {Array} - The preHooked model for the axis.
+	*/
+	AxisModel.prototype.getPreHookedModel = function () {
+		return this.preHookedModel;
+	};
+
+	/*
 	 * Retrieves the model, once created.
 	 * What is model for axes? See AXIS MODEL AND HOOKS at top.
 	 *
