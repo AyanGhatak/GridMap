@@ -346,7 +346,7 @@
 
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
-	 		meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
+	 		meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.preHookedAxisName, config.name.style);
 	 		totalHeight += axisNameMetrics.height + (config.name.margin || 0);
 		}
 
@@ -460,7 +460,11 @@
 	 * suggested
 	 */
 	XAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
-		var model = this.model,
+		var model = this.getModel(),
+			preHookedModel = this.getPreHookedModel(),
+			textFN = function () {
+				return preHookedModel[arguments[1]];
+			},
 			config = this.config,
 			meta = this.meta,
 			modelSize = model.length,
@@ -468,7 +472,6 @@
 			labelConfig = config.label,
 			margin = labelConfig.margin || 0,
 			y = measurement.y,
-			preDrawingHook = labelConfig.preDrawingHook,
 			postDrawingHook = labelConfig.postDrawingHook,
 			labelGroup,
 			allText;
@@ -483,7 +486,7 @@
 			dx: '-0.25em',
 			x : function (d, i) { return (i *  blockSize) + (blockSize / 2); },
 			y: y + margin + meta.maxLabelHeight / 2
-		}).text(preDrawingHook).style(labelConfig.style);
+		}).text(textFN).style(labelConfig.style);
 
 		// Once all text are plotted in DOM, call the hook callback by passing all the SVGElements
 		postDrawingHook(allText);
@@ -507,7 +510,6 @@
 			axisName = this.axisName,
 			meta = this.meta,
 			nameConfig = config.name,
-			preDrawingHook = nameConfig.preDrawingHook,
 			postDrawingHook = nameConfig.postDrawingHook,
 			margin = nameConfig.margin || 0,
 			width = measurement.width,
@@ -522,7 +524,7 @@
 			plotItem = targetGroup.append('text').attr({
 				x: width / 2,
 				y: measurement.y + margin,
-			}).text(preDrawingHook(axisName)).style(config.name.style);
+			}).text(this.preHookedAxisName).style(config.name.style);
 
 			postDrawingHook(plotItem);
 
