@@ -134,7 +134,8 @@
 	 * @constructor
 	 */
 	function AxisModel (options, data) {
-		var defaultAxisData = stubs.getForAxis(),
+		var nameConfig,
+			defaultAxisData = stubs.getForAxis(),
 			merge = utils.merge;
 
 		this.config = {};
@@ -152,11 +153,16 @@
 		this.gridLines = [];
 		// The key, value of which would be pushed in axis model
 		this.dataKey = undefined;
+		nameConfig = this.config.name;
 		// Axis name gives context on the axis itself by mentationing what the axis means
-		this.axisName = this.config.name.text;
+		this.axisName = nameConfig.text;
+		// Pre-hooks the axisName and stores it in the instance for future reference.
+		this.preHookedAxisName = nameConfig.preDrawingHook(this.axisName);
 
 		// Prepares the model from the data
 		this.model = this.getNormalizedModel(data);
+		//Applies the preHook to the normalised model. Save it in the instance.
+		this.preHookedModel = this.preHookModel();
 	}
 
 	AxisModel.prototype.constructor = AxisModel;
@@ -205,6 +211,31 @@
 	};
 
 	/*
+	 * Applies prehooks to the data model.
+	 * Which would be useful in space management and drawing implementations.
+	 * Saving this seperately would help not to diturb the sanity of the axis model.
+	 *
+	 * @return {Array} - Array of values after applying the prehook.
+	*/
+	AxisModel.prototype.preHookModel = function () {
+		var axisModel = this,
+			model = axisModel.model,
+			labelConfig = axisModel.config.label,
+			preDrawingHook = labelConfig.preDrawingHook;
+
+		return model.map(preDrawingHook);
+	};
+
+	/*
+	 * Retrieves the preHooked model, once created.
+	 *
+	 * @return {Array} - The preHooked model for the axis.
+	*/
+	AxisModel.prototype.getPreHookedModel = function () {
+		return this.preHookedModel;
+	};
+
+	/*
 	 * Retrieves the model, once created.
 	 * What is model for axes? See AXIS MODEL AND HOOKS at top.
 	 *
@@ -236,8 +267,7 @@
 	AxisModel.prototype.updatePreDrawingSpace = function (controller) {
 		var getTextMetrics = utils.getTextMetrics,
 			labelConfig = this.config.label,
-			labelStyle = labelConfig.style,
-			labelPreDrawingHook = labelConfig.preDrawingHook;
+			labelStyle = labelConfig.style;
 
 		// Aks for the the dependenies that are needed to calculate the component space.
 		// Details of all the dependencies which can be invoked is listed at top.
@@ -245,18 +275,19 @@
 			'effectiveBodyMeasurement',
 			'componentStackManager',
 			function (measurement, componentStackManager) {
-				var model = this.model,
+				var axisModel = this,
+					preHookedModel = axisModel.getPreHookedModel(),
 					index = 0,
-					length = model.length,
+					length = preHookedModel.length,
 					allDimension = [];
 
 				for (; index < length; index++) {
 					// Gets all the model texts which will be plotted.
-					allDimension.push(getTextMetrics(labelPreDrawingHook(model[index]), labelStyle));
+					allDimension.push(getTextMetrics(preHookedModel[index], labelStyle));
 				}
 
 				// Relegates the call to the child derived class, so that it manages it's own parts
-				this.allocateComponentSpace(allDimension, measurement, componentStackManager);
+				axisModel.allocateComponentSpace(allDimension, measurement, componentStackManager);
 			}.bind(this)
 		]);
 	};
@@ -315,7 +346,7 @@
 
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
-	 		meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
+	 		meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.preHookedAxisName, config.name.style);
 	 		totalHeight += axisNameMetrics.height + (config.name.margin || 0);
 		}
 
@@ -429,7 +460,11 @@
 	 * suggested
 	 */
 	XAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
-		var model = this.model,
+		var model = this.getModel(),
+			preHookedModel = this.getPreHookedModel(),
+			textFN = function () {
+				return preHookedModel[arguments[1]];
+			},
 			config = this.config,
 			meta = this.meta,
 			modelSize = model.length,
@@ -437,7 +472,6 @@
 			labelConfig = config.label,
 			margin = labelConfig.margin || 0,
 			y = measurement.y,
-			preDrawingHook = labelConfig.preDrawingHook,
 			postDrawingHook = labelConfig.postDrawingHook,
 			labelGroup,
 			allText;
@@ -452,7 +486,7 @@
 			dx: '-0.25em',
 			x : function (d, i) { return (i *  blockSize) + (blockSize / 2); },
 			y: y + margin + meta.maxLabelHeight / 2
-		}).text(preDrawingHook).style(labelConfig.style);
+		}).text(textFN).style(labelConfig.style);
 
 		// Once all text are plotted in DOM, call the hook callback by passing all the SVGElements
 		postDrawingHook(allText);
@@ -476,7 +510,6 @@
 			axisName = this.axisName,
 			meta = this.meta,
 			nameConfig = config.name,
-			preDrawingHook = nameConfig.preDrawingHook,
 			postDrawingHook = nameConfig.postDrawingHook,
 			margin = nameConfig.margin || 0,
 			width = measurement.width,
@@ -491,7 +524,7 @@
 			plotItem = targetGroup.append('text').attr({
 				x: width / 2,
 				y: measurement.y + margin,
-			}).text(preDrawingHook(axisName)).style(config.name.style);
+			}).text(this.preHookedAxisName).style(config.name.style);
 
 			postDrawingHook(plotItem);
 
@@ -561,7 +594,7 @@
 
 		if (this.axisName) {
 			// If axis name is given, allocates space for axis name as well.
-		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.axisName, config.name.style);
+		 	meta.axisNameMetrics = axisNameMetrics = getTextMetrics(this.preHookedAxisName, config.name.style);
 		 	totalWidth += ((axisNameMetrics.width * cos(rotateAxisNameAngle)) + (axisNameMetrics.height *
 		 		sin(rotateAxisNameAngle))) + (config.name.margin || 0);
 		}
@@ -672,7 +705,11 @@
 	 * suggested
 	 */
 	YAxisModel.prototype.drawAxisLabels = function (targetGroup, measurement) {
-		var model = this.model,
+		var model = this.getModel(),
+			preHookedModel = this.getPreHookedModel(),
+			textFN = function () {
+				return preHookedModel[arguments[1]];
+			},
 			config = this.config,
 			meta = this.meta,
 			labelConfig = config.label,
@@ -680,7 +717,6 @@
 			margin = labelConfig.margin || 0,
 			modelSize = model.length,
 			blockSize = measurement.height / modelSize,
-			preDrawingHook = labelConfig.preDrawingHook,
 			postDrawingHook = labelConfig.postDrawingHook,
 			modelSyncDimension = meta.modelSyncDimension,
 			labelGroup,
@@ -696,7 +732,7 @@
 			dy: '-0.25em',
 			x: x + meta.maxLabelWidth / 2,
 			y : function (d, i) { return (i *  blockSize) + (blockSize / 2) + modelSyncDimension[i].height / 2; }
-		}).text(preDrawingHook).style(labelConfig.style);
+		}).text(textFN).style(labelConfig.style);
 
 		// Once all text are plotted in DOM, call the hook callback by passing all the SVGElements
 		postDrawingHook(allText);
@@ -722,7 +758,6 @@
 			axisName = this.axisName,
 			meta = this.meta,
 			nameConfig = config.name,
-			preDrawingHook = nameConfig.preDrawingHook,
 			postDrawingHook = nameConfig.postDrawingHook,
 			margin = nameConfig.margin || 0,
 			height = measurement.height,
@@ -748,7 +783,7 @@
 				y: (widthComponent * sin(rotateAxisNameAngle)) - (heightComponent * cos(rotateAxisNameAngle)),
 				x: (widthComponent * cos(rotateAxisNameAngle)) + (heightComponent * sin(rotateAxisNameAngle))
 			})
-			.text(preDrawingHook(axisName)).style(config.name.style);
+			.text(this.preHookedAxisName).style(config.name.style);
 
 			postDrawingHook(plotItem);
 
